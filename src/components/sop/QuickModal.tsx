@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Check, PartyPopper, Phone, ThumbsDown, ThumbsUp, X, Zap } from "lucide-react";
 import { getDept } from "@/lib/constants";
 import type { PublicSop } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth";
 import { DeptBadge, T, Wrap } from "@/components/ui";
+import { Dropdown } from "@/components/ui/dropdown";
+import { IconText } from "@/components/icons";
 import { EscCard } from "@/components/sop/Escalation";
 
 export function QuickModal({
@@ -31,56 +34,77 @@ export function QuickModal({
   const escMatch = sop.escalationContacts?.find((c) => c.problemType === prob);
   return (
     <Wrap onClose={onClose} maxW={520}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <div className="mb-5 flex items-start justify-between">
         <div>
           <DeptBadge deptId={sop.department} />
-          <div style={{ color: "#f1f5f9", fontWeight: 800, fontSize: 18, marginTop: 8 }}>{sop.title}</div>
+          <div className="mt-2 text-lg font-extrabold text-foreground">{sop.title}</div>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748b", fontSize: 22, cursor: "pointer" }}>
-          ✕
+        <button type="button" onClick={onClose} className="cursor-pointer border-0 bg-transparent text-muted-foreground" aria-label="إغلاق">
+          <X className="h-5 w-5" />
         </button>
       </div>
-      <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 14, padding: 20, marginBottom: 14 }}>
-        <div style={{ color: dept.color, fontWeight: 700, fontSize: 12, marginBottom: 12 }}>⚡ الخطوات السريعة</div>
+      <div className="mb-3.5 rounded-[var(--radius-lg)] border border-border bg-surface-sunken p-5">
+        <div className="mb-3 text-xs font-bold" style={{ color: dept.color }}>
+          <IconText icon={Zap} className="text-xs font-bold" iconClassName="h-3.5 w-3.5">
+            الخطوات السريعة
+          </IconText>
+        </div>
         {sop.steps.slice(0, 5).map((st, i) => (
-          <div key={st.id} style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 22, height: 22, borderRadius: "50%", background: `linear-gradient(135deg,${dept.color},${dept.color}88)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 10, flexShrink: 0 }}>
+          <div key={st.id} className="mb-2.5 flex gap-2.5">
+            <div
+              className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold text-white"
+              style={{ background: `linear-gradient(135deg,${dept.color},${dept.color}88)` }}
+            >
               {i + 1}
             </div>
-            <div style={{ color: "#cbd5e1", fontSize: 13, lineHeight: 1.6 }}>{st.text}</div>
+            <div className="text-[13px] leading-relaxed text-foreground">{st.text}</div>
           </div>
         ))}
       </div>
       {sop.escalationContacts?.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ color: "#f59e0b", fontWeight: 700, fontSize: 12, marginBottom: 8 }}>📞 اختر نوع المشكلة للتصعيد:</div>
-          <select value={prob} onChange={(e) => setProb(e.target.value)} style={{ ...T.input, cursor: "pointer", marginBottom: prob ? 10 : 0 }}>
-            <option value="">— نوع المشكلة —</option>
-            {sop.escalationContacts.map((c, i) => (
-              <option key={c.problemType + i} value={c.problemType}>
-                {c.problemType}
-              </option>
-            ))}
-          </select>
+        <div className="mb-3.5">
+          <IconText icon={Phone} className="mb-2 text-xs font-bold text-warning">
+            اختر نوع المشكلة للتصعيد:
+          </IconText>
+          <Dropdown
+            value={prob}
+            onChange={setProb}
+            placeholder="— نوع المشكلة —"
+            options={[
+              { value: "", label: "— نوع المشكلة —" },
+              ...[...new Set(sop.escalationContacts.map((c) => c.problemType))].map((p) => ({ value: p, label: p })),
+            ]}
+            className={prob ? "mb-2.5" : undefined}
+          />
           {escMatch && <EscCard contact={escMatch} countryId={sop.countries[0]} />}
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button disabled={busy} onClick={() => onVote(sop.id, "helpful")} style={{ background: "#16a34a18", color: "#22c55e", border: "1px solid #22c55e33", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
-            👍{sop.helpfulCount}
+      <div className="flex flex-wrap justify-between gap-2.5">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onVote(sop.id, "helpful")}
+            className="cursor-pointer rounded-md border border-success/25 bg-success-soft px-3 py-1 text-xs text-success"
+          >
+            <IconText icon={ThumbsUp}>{sop.helpfulCount}</IconText>
           </button>
-          <button disabled={busy} onClick={() => onVote(sop.id, "notHelpful")} style={{ background: "#dc262618", color: "#ef4444", border: "1px solid #ef444433", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
-            👎{sop.notHelpfulCount}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onVote(sop.id, "notHelpful")}
+            className="cursor-pointer rounded-md border border-danger/25 bg-danger-soft px-3 py-1 text-xs text-danger"
+          >
+            <IconText icon={ThumbsDown}>{sop.notHelpfulCount}</IconText>
           </button>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           {!ackd && (
-            <button disabled={busy} onClick={() => onAck(sop.id)} style={{ ...T.btn("#22c55e"), padding: "6px 14px", fontSize: 12 }}>
-              ✓ قرأته
+            <button type="button" disabled={busy} onClick={() => onAck(sop.id)} style={{ ...T.btn("#0a6e55"), padding: "6px 14px", fontSize: 12 }}>
+              <IconText icon={Check}>قرأته</IconText>
             </button>
           )}
-          <button onClick={onFull} style={T.btn(dept.color)}>
+          <button type="button" onClick={onFull} style={T.btn(dept.color)}>
             عرض كامل
           </button>
         </div>
@@ -97,45 +121,68 @@ export function ChecklistModal({ sop, onClose }: { sop: PublicSop; onClose: () =
   const pct = total ? Math.round((completed / total) * 100) : 0;
   return (
     <Wrap onClose={onClose} maxW={540}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <div className="mb-5 flex items-start justify-between">
         <div>
           <DeptBadge deptId={sop.department} />
-          <div style={{ color: "#f1f5f9", fontWeight: 800, fontSize: 18, marginTop: 8 }}>{sop.title}</div>
+          <div className="mt-2 text-lg font-extrabold text-foreground">{sop.title}</div>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748b", fontSize: 22, cursor: "pointer" }}>
-          ✕
+        <button type="button" onClick={onClose} className="cursor-pointer border-0 bg-transparent text-muted-foreground" aria-label="إغلاق">
+          <X className="h-5 w-5" />
         </button>
       </div>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: 13, marginBottom: 8 }}>
+      <div className="mb-5">
+        <div className="mb-2 flex justify-between text-[13px] text-muted-foreground">
           <span>
             {completed}/{total}
           </span>
-          <span style={{ color: pct === 100 ? "#22c55e" : "#3b82f6", fontWeight: 700 }}>{pct}%</span>
+          <span className="font-bold" style={{ color: pct === 100 ? "var(--success)" : "var(--primary)" }}>
+            {pct}%
+          </span>
         </div>
-        <div style={{ background: "#0f172a", borderRadius: 100, height: 8, overflow: "hidden" }}>
-          <div style={{ width: `${pct}%`, height: "100%", background: pct === 100 ? "#22c55e" : "linear-gradient(90deg,#3b82f6,#6366f1)", borderRadius: 100 }} />
+        <div className="h-2 overflow-hidden rounded-full bg-surface-sunken">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${pct}%`, background: pct === 100 ? "var(--success)" : "var(--primary)" }}
+          />
         </div>
       </div>
       {sop.steps.map((st, i) => (
         <div
           key={st.id}
           onClick={() => setDone((d) => ({ ...d, [st.id]: !d[st.id] }))}
-          style={{ display: "flex", gap: 12, alignItems: "flex-start", background: done[st.id] ? "#0d1f0d" : "#1e293b", border: `1px solid ${done[st.id] ? "#22c55e33" : "#334155"}`, borderRadius: 12, padding: "13px 18px", cursor: "pointer", marginBottom: 8 }}
+          className="mb-2 flex cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] border px-[18px] py-[13px]"
+          style={{
+            background: done[st.id] ? "var(--success-soft)" : "var(--surface-sunken)",
+            borderColor: done[st.id] ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border-strong)",
+          }}
         >
-          <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${done[st.id] ? "#22c55e" : "#475569"}`, background: done[st.id] ? "#22c55e" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            {done[st.id] && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>✓</span>}
+          <div
+            className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md"
+            style={{
+              border: `2px solid ${done[st.id] ? "var(--success)" : "var(--text-muted)"}`,
+              background: done[st.id] ? "var(--success)" : "transparent",
+            }}
+          >
+            {done[st.id] && <Check className="h-3.5 w-3.5 text-white" />}
           </div>
-          <div style={{ color: done[st.id] ? "#64748b" : "#cbd5e1", fontSize: 14, lineHeight: 1.6, textDecoration: done[st.id] ? "line-through" : "none" }}>
-            <span style={{ color: done[st.id] ? "#475569" : dept.color, fontWeight: 700, fontSize: 12, marginLeft: 5 }}>#{i + 1}</span>
+          <div
+            className="text-sm leading-relaxed"
+            style={{
+              color: done[st.id] ? "var(--text-muted)" : "var(--text-primary)",
+              textDecoration: done[st.id] ? "line-through" : "none",
+            }}
+          >
+            <span className="ms-1 text-xs font-bold" style={{ color: done[st.id] ? "var(--text-muted)" : dept.color }}>
+              #{i + 1}
+            </span>
             {st.text}
           </div>
         </div>
       ))}
       {pct === 100 && (
-        <div style={{ background: "#0d1f0d", border: "1px solid #22c55e44", borderRadius: 12, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 6 }}>🎉</div>
-          <div style={{ color: "#22c55e", fontWeight: 800 }}>أحسنت!</div>
+        <div className="rounded-[var(--radius-lg)] border border-success/25 bg-success-soft p-4 text-center">
+          <PartyPopper className="mx-auto mb-1.5 h-8 w-8 text-success" />
+          <div className="font-extrabold text-success">أحسنت!</div>
         </div>
       )}
     </Wrap>

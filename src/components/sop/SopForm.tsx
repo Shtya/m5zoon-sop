@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { DEPARTMENTS, ORDER_STATUSES, PROBLEM_TYPES, RELATED_ACTIONS } from "@/lib/constants";
+import { FileText, FileType, Paperclip, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { ORDER_STATUSES, PROBLEM_TYPES, RELATED_ACTIONS } from "@/lib/constants";
 import type { PublicSop } from "@/lib/types";
 import { FL, T } from "@/components/ui";
 import { CountryPicker } from "@/components/CountryBar";
+import { Dropdown } from "@/components/ui/dropdown";
+import { departmentOptions, IconText } from "@/components/icons";
 
 function suid() {
   return `s-${Math.random().toString(36).slice(2, 6)}`;
@@ -67,7 +70,9 @@ export function SopForm({
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
-        <h2 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: 0 }}>{initial ? "✏️ تعديل SOP" : "➕ إنشاء SOP جديد"}</h2>
+        <h2 className="m-0 text-[22px] font-extrabold text-foreground">
+          <IconText icon={initial ? Pencil : Plus}>{initial ? "تعديل SOP" : "إنشاء SOP جديد"}</IconText>
+        </h2>
         <button onClick={onCancel} style={T.ghost}>
           إلغاء
         </button>
@@ -75,13 +80,11 @@ export function SopForm({
       <div className="makhzon-form-grid">
         <div>
           <FL label="القسم">
-            <select value={form.department} onChange={(e) => upd("department", e.target.value)} style={{ ...I, cursor: "pointer" }}>
-              {DEPARTMENTS.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.icon} {d.label}
-                </option>
-              ))}
-            </select>
+            <Dropdown
+              value={form.department}
+              onChange={(v) => upd("department", v)}
+              options={departmentOptions()}
+            />
           </FL>
           <FL label="عنوان الـ SOP">
             <input value={form.title} onChange={(e) => upd("title", e.target.value)} placeholder="مثال: التعامل مع عنوان ناقص" style={I} />
@@ -103,14 +106,14 @@ export function SopForm({
                 <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
                   <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#3b82f6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
                   <input value={st.text} onChange={(e) => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} style={I} />
-                  <button onClick={() => upd("steps", form.steps.filter((_, j) => j !== i))} style={{ background: "#1a0a0a", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-                    ✕
+                  <button onClick={() => upd("steps", form.steps.filter((_, j) => j !== i))} className="shrink-0 cursor-pointer rounded-md border border-danger/25 bg-danger-soft p-2 text-danger">
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
                 <input value={st.imageUrl} onChange={(e) => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, imageUrl: e.target.value } : x)))} placeholder="رابط صورة الخطوة (اختياري)" style={{ ...I, fontSize: 12 }} />
               </div>
             ))}
-            <button onClick={() => upd("steps", [...form.steps, { id: suid(), text: "", imageUrl: "" }])} style={{ ...T.ghost, width: "100%", color: "#93c5fd" }}>
+            <button onClick={() => upd("steps", [...form.steps, { id: suid(), text: "", imageUrl: "" }])} style={{ ...T.ghost, width: "100%", color: "var(--primary)" }}>
               + خطوة
             </button>
           </FL>
@@ -119,8 +122,8 @@ export function SopForm({
               <div key={i} className="makhzon-rule" style={{ marginBottom: 8 }}>
                 <input value={r.condition} onChange={(e) => upd("decisionRules", form.decisionRules.map((x, j) => (j === i ? { ...x, condition: e.target.value } : x)))} placeholder="لو..." style={I} />
                 <input value={r.action} onChange={(e) => upd("decisionRules", form.decisionRules.map((x, j) => (j === i ? { ...x, action: e.target.value } : x)))} placeholder="نعمل..." style={I} />
-                <button onClick={() => upd("decisionRules", form.decisionRules.filter((_, j) => j !== i))} style={{ background: "#1a0a0a", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer", fontFamily: "inherit" }}>
-                  ✕
+                <button onClick={() => upd("decisionRules", form.decisionRules.filter((_, j) => j !== i))} className="cursor-pointer rounded-md border border-danger/25 bg-danger-soft p-2 text-danger">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}
@@ -130,20 +133,20 @@ export function SopForm({
           </FL>
         </div>
         <div>
-          <FL label="📞 جهات التصعيد">
+          <FL label="جهات التصعيد">
             {form.escalationContacts.map((c, i) => (
-              <div key={i} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 14, marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <select value={c.problemType} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, problemType: e.target.value } : x)))} style={{ ...I, width: "auto", padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>
-                    <option value="">— نوع المشكلة —</option>
-                    {PROBLEM_TYPES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+              <div key={i} className="mb-2.5 rounded-[var(--radius-lg)] border border-border bg-surface-sunken p-3.5">
+                <div className="mb-2.5 flex justify-between">
+                  <Dropdown
+                    value={c.problemType}
+                    onChange={(v) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, problemType: v } : x)))}
+                    placeholder="— نوع المشكلة —"
+                    size="sm"
+                    className="min-w-[200px]"
+                    options={[{ value: "", label: "— نوع المشكلة —" }, ...PROBLEM_TYPES.map((p) => ({ value: p, label: p }))]}
+                  />
                   <button onClick={() => upd("escalationContacts", form.escalationContacts.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16 }}>
-                    🗑
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -158,17 +161,22 @@ export function SopForm({
               + جهة تصعيد
             </button>
           </FL>
-          <FL label="📎 الملفات المرفقة">
+          <FL label="الملفات المرفقة">
             {form.attachments.map((a, i) => (
-              <div key={i} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 12, marginBottom: 8 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                  <select value={a.type} onChange={(e) => upd("attachments", form.attachments.map((x, j) => (j === i ? { ...x, type: e.target.value as typeof a.type } : x)))} style={{ ...I, padding: "6px 10px", fontSize: 12, cursor: "pointer" }}>
-                    <option value="google_doc">📄 Google Doc</option>
-                    <option value="word">📝 Word Doc</option>
-                    <option value="other">📎 ملف آخر</option>
-                  </select>
+              <div key={i} className="mb-2 rounded-[var(--radius-lg)] border border-border bg-surface-sunken p-3">
+                <div className="mb-2 grid grid-cols-[1fr_auto] items-center gap-2">
+                  <Dropdown
+                    value={a.type}
+                    onChange={(v) => upd("attachments", form.attachments.map((x, j) => (j === i ? { ...x, type: v as typeof a.type } : x)))}
+                    size="sm"
+                    options={[
+                      { value: "google_doc", label: "Google Doc", icon: <FileText className="h-3.5 w-3.5" /> },
+                      { value: "word", label: "Word Doc", icon: <FileType className="h-3.5 w-3.5" /> },
+                      { value: "other", label: "ملف آخر", icon: <Paperclip className="h-3.5 w-3.5" /> },
+                    ]}
+                  />
                   <button onClick={() => upd("attachments", form.attachments.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}>
-                    🗑
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
                 <input value={a.label} onChange={(e) => upd("attachments", form.attachments.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="اسم الملف" style={{ ...I, marginBottom: 8 }} />
@@ -183,8 +191,8 @@ export function SopForm({
             {form.commonMistakes.map((m, i) => (
               <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 <input value={m} onChange={(e) => upd("commonMistakes", form.commonMistakes.map((x, j) => (j === i ? e.target.value : x)))} style={I} />
-                <button onClick={() => upd("commonMistakes", form.commonMistakes.filter((_, j) => j !== i))} style={{ background: "#1a0a0a", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer" }}>
-                  ✕
+                <button onClick={() => upd("commonMistakes", form.commonMistakes.filter((_, j) => j !== i))} className="cursor-pointer rounded-md border border-danger/25 bg-danger-soft p-2 text-danger">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}
@@ -216,8 +224,8 @@ export function SopForm({
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {form.keywords.map((k, i) => (
-                <span key={i} onClick={() => upd("keywords", form.keywords.filter((_, j) => j !== i))} style={{ background: "#1e3a5f", color: "#93c5fd", borderRadius: 6, padding: "3px 10px", fontSize: 12, cursor: "pointer" }}>
-                  {k} ✕
+                <span key={i} onClick={() => upd("keywords", form.keywords.filter((_, j) => j !== i))} className="cursor-pointer rounded-md bg-primary-soft px-2.5 py-0.5 text-xs text-primary">
+                  {k} <X className="inline h-3 w-3" />
                 </span>
               ))}
             </div>
@@ -226,7 +234,7 @@ export function SopForm({
             <FL label="الحالات">
               <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 160, overflowY: "auto" }}>
                 {ORDER_STATUSES.map((s) => (
-                  <label key={s} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", color: "#94a3b8", fontSize: 12 }}>
+                  <label key={s} className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
                     <input type="checkbox" checked={form.relatedStatuses.includes(s)} onChange={(e) => upd("relatedStatuses", e.target.checked ? [...form.relatedStatuses, s] : form.relatedStatuses.filter((x) => x !== s))} />
                     {s}
                   </label>
@@ -236,7 +244,7 @@ export function SopForm({
             <FL label="الإجراءات">
               <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 160, overflowY: "auto" }}>
                 {RELATED_ACTIONS.map((a) => (
-                  <label key={a} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", color: "#94a3b8", fontSize: 12 }}>
+                  <label key={a} className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
                     <input type="checkbox" checked={form.relatedActions.includes(a)} onChange={(e) => upd("relatedActions", e.target.checked ? [...form.relatedActions, a] : form.relatedActions.filter((x) => x !== a))} />
                     {a}
                   </label>
@@ -244,7 +252,7 @@ export function SopForm({
               </div>
             </FL>
           </div>
-          <FL label="🌍 الدول المعنية">
+          <FL label="الدول المعنية">
             <CountryPicker value={form.countries} onChange={(v) => upd("countries", v)} />
           </FL>
         </div>
@@ -261,7 +269,9 @@ export function SopForm({
           }}
           style={{ ...T.btn(), padding: "12px 32px", fontSize: 15, opacity: busy ? 0.6 : 1 }}
         >
-          {busy ? "جاري الحفظ..." : "💾 حفظ الـ SOP"}
+          {busy ? "جاري الحفظ..." : (
+            <IconText icon={Save}>حفظ الـ SOP</IconText>
+          )}
         </button>
       </div>
     </div>

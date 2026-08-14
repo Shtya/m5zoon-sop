@@ -20,10 +20,10 @@ async function main() {
 
   await prisma.country.createMany({
     data: [
-      { id: "ae", name: "الإمارات", flag: "🇦🇪", color: "#10B981" },
-      { id: "sa", name: "السعودية", flag: "🇸🇦", color: "#22c55e" },
-      { id: "jo", name: "الأردن", flag: "🇯🇴", color: "#ef4444" },
-      { id: "om", name: "عُمان", flag: "🇴🇲", color: "#f59e0b" },
+      { id: "ae", name: "الإمارات", flag: "AE", color: "#10B981" },
+      { id: "sa", name: "السعودية", flag: "SA", color: "#22c55e" },
+      { id: "jo", name: "الأردن", flag: "JO", color: "#ef4444" },
+      { id: "om", name: "عُمان", flag: "OM", color: "#f59e0b" },
     ],
   });
 

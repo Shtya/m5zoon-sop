@@ -1,30 +1,43 @@
 "use client";
 
 import { useState } from "react";
+import { FileText, FileType, Paperclip, Phone, Search, Wrench } from "lucide-react";
 import { COUNTRIES, PROBLEM_TYPES, getDept, whatsappLink } from "@/lib/constants";
 import type { Attachment, EscalationContact } from "@/lib/types";
-import { Badge, T } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { Dropdown } from "@/components/ui/dropdown";
+import { IconText } from "@/components/icons";
 
 export function EscCard({ contact, countryId }: { contact: EscalationContact; countryId?: string }) {
   const wa = whatsappLink(contact.phone, contact.whatsapp, countryId);
   return (
-    <div style={{ background: "#0f172a", border: "1px solid #f59e0b33", borderRadius: 14, padding: 18 }}>
-      <div style={{ marginBottom: 10 }}>
-        <Badge color="#f59e0b">🔧 {contact.problemType}</Badge>
+    <div className="rounded-[var(--radius-lg)] border border-warning/25 bg-warning-soft p-[18px]">
+      <div className="mb-2.5">
+        <Badge color="#d97706">
+          <IconText icon={Wrench}>{contact.problemType}</IconText>
+        </Badge>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 15 }}>{contact.name}</div>
-          <div style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>{contact.position}</div>
+          <div className="text-[15px] font-bold text-foreground">{contact.name}</div>
+          <div className="mt-0.5 text-[13px] text-muted-foreground">{contact.position}</div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-2">
           {contact.phone && (
-            <a href={`tel:${contact.phone}`} style={{ display: "flex", alignItems: "center", gap: 6, background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "6px 12px", color: "#94a3b8", fontSize: 12, textDecoration: "none" }}>
-              📞 {contact.phone}
+            <a
+              href={`tel:${contact.phone}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3 py-1.5 text-xs text-muted-foreground no-underline"
+            >
+              <Phone className="h-3.5 w-3.5" /> {contact.phone}
             </a>
           )}
           {wa && (
-            <a href={wa} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, background: "#0d1f0d", border: "1px solid #22c55e44", borderRadius: 8, padding: "6px 14px", color: "#22c55e", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            <a
+              href={wa}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 rounded-md border border-success/30 bg-success-soft px-3.5 py-1.5 text-xs font-bold text-success no-underline"
+            >
               واتساب
             </a>
           )}
@@ -38,16 +51,22 @@ export function EscFinder({ contacts, countryId }: { contacts: EscalationContact
   const [sel, setSel] = useState("");
   const match = contacts.find((c) => c.problemType === sel);
   return (
-    <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-      <div style={{ color: "#f59e0b", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>🔍 عندك مشكلة؟ اختر نوعها</div>
-      <select value={sel} onChange={(e) => setSel(e.target.value)} style={{ ...T.input, cursor: "pointer", marginBottom: sel ? 12 : 0 }}>
-        <option value="">— اختر نوع المشكلة —</option>
-        {contacts.map((c, i) => (
-          <option key={c.problemType + i} value={c.problemType}>
-            {c.problemType}
-          </option>
-        ))}
-      </select>
+    <div className="mb-3.5 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
+      <div className="mb-2.5">
+        <IconText icon={Search} className="text-[13px] font-bold text-warning">
+          عندك مشكلة؟ اختر نوعها
+        </IconText>
+      </div>
+      <Dropdown
+        value={sel}
+        onChange={setSel}
+        placeholder="— اختر نوع المشكلة —"
+        options={[
+          { value: "", label: "— اختر نوع المشكلة —" },
+          ...[...new Set(contacts.map((c) => c.problemType))].map((p) => ({ value: p, label: p })),
+        ]}
+        className={sel ? "mb-3" : undefined}
+      />
       {match && <EscCard contact={match} countryId={countryId} />}
     </div>
   );
@@ -56,17 +75,28 @@ export function EscFinder({ contacts, countryId }: { contacts: EscalationContact
 export function AttCard({ att }: { att: Attachment }) {
   const isGDoc = att.type === "google_doc" || att.url?.includes("docs.google");
   const isWord = att.type === "word";
-  const icon = isGDoc ? "📄" : isWord ? "📝" : "📎";
+  const Icon = isGDoc ? FileText : isWord ? FileType : Paperclip;
   const label = isGDoc ? "Google Doc" : isWord ? "Word Doc" : "ملف";
-  const color = isGDoc ? "#4285f4" : isWord ? "#2b579a" : "#64748b";
+  const color = isGDoc ? "#4285f4" : isWord ? "#2b579a" : "var(--text-secondary)";
   return (
-    <a href={att.url} target="_blank" rel="noreferrer" style={{ display: "flex", gap: 12, alignItems: "center", background: "#0f172a", border: `1px solid ${color}33`, borderRadius: 12, padding: "12px 16px", textDecoration: "none" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 9, background: color + "18", border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
-        {icon}
+    <a
+      href={att.url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-3 rounded-[var(--radius-lg)] border bg-surface-sunken px-4 py-3 no-underline"
+      style={{ borderColor: `color-mix(in srgb, ${color} 28%, transparent)` }}
+    >
+      <div
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+        style={{ background: `color-mix(in srgb, ${color} 14%, white)`, border: `1px solid color-mix(in srgb, ${color} 28%, transparent)`, color }}
+      >
+        <Icon className="h-4 w-4" strokeWidth={1.8} />
       </div>
       <div>
-        <div style={{ color: "#f1f5f9", fontWeight: 600, fontSize: 14 }}>{att.label || "ملف مرفق"}</div>
-        <div style={{ color, fontSize: 11, marginTop: 2 }}>{label} · فتح ↗</div>
+        <div className="text-sm font-semibold text-foreground">{att.label || "ملف مرفق"}</div>
+        <div className="mt-0.5 text-[11px]" style={{ color }}>
+          {label} · فتح
+        </div>
       </div>
     </a>
   );

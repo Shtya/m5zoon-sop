@@ -1,11 +1,37 @@
 "use client";
 
 import { useState } from "react";
+import {
+  ArrowLeft,
+  Check,
+  CheckSquare,
+  CircleAlert,
+  Clock,
+  Eye,
+  FileText,
+  GitBranch,
+  History,
+  ListChecks,
+  MessageSquare,
+  Paperclip,
+  Pencil,
+  Phone,
+  Play,
+  Target,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  TriangleAlert,
+  Users,
+  Video,
+  Zap,
+} from "lucide-react";
 import { getDept, getRole, isExpired, isExpiring } from "@/lib/constants";
 import { can, canEditSop } from "@/lib/permissions";
 import type { PublicSop } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth";
 import { Av, Badge, CountryPills, DeptBadge, Sec, T, Tabs } from "@/components/ui";
+import { IconText } from "@/components/icons";
 import { MindMap } from "@/components/MindMap";
 import { AttCard, EscCard, EscFinder } from "@/components/sop/Escalation";
 
@@ -45,25 +71,25 @@ export function FullSopView({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <button onClick={onBack} style={T.ghost}>
-          ← رجوع
+          <IconText icon={ArrowLeft}>رجوع</IconText>
         </button>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {!ackd && (
             <button disabled={busy} onClick={() => onAck(sop.id)} style={T.btn("#22c55e")}>
-              ✓ قرأته
+              <IconText icon={Check}>قرأته</IconText>
             </button>
           )}
           <button onClick={onChecklist} style={T.btn("#6366f1")}>
-            ☑️ Checklist
+            <IconText icon={CheckSquare}>Checklist</IconText>
           </button>
           {canEditSop(currentUser.role, currentUser.department, sop.department) && (
             <button onClick={() => onEdit(sop)} style={T.btn("#8b5cf6")}>
-              ✏️ تعديل
+              <IconText icon={Pencil}>تعديل</IconText>
             </button>
           )}
           {can(currentUser.role, "sop.delete") && (
             <button onClick={() => onDelete(sop.id)} style={T.btn("#ef4444")}>
-              🗑 حذف
+              <IconText icon={Trash2}>حذف</IconText>
             </button>
           )}
         </div>
@@ -73,23 +99,38 @@ export function FullSopView({
           <div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
               <DeptBadge deptId={sop.department} />
-              {ackd && <Badge color="#22c55e">✓ قرأته</Badge>}
-              {isExpired(sop.reviewDate) && <Badge color="#ef4444">⚠️ انتهت المراجعة</Badge>}
-              {isExpiring(sop.reviewDate) && !isExpired(sop.reviewDate) && <Badge color="#f59e0b">⏰ مراجعة قريبة</Badge>}
+              {ackd && (
+                <Badge color="#22c55e">
+                  <IconText icon={Check}>قرأته</IconText>
+                </Badge>
+              )}
+              {isExpired(sop.reviewDate) && (
+                <Badge color="#ef4444">
+                  <IconText icon={TriangleAlert}>انتهت المراجعة</IconText>
+                </Badge>
+              )}
+              {isExpiring(sop.reviewDate) && !isExpired(sop.reviewDate) && (
+                <Badge color="#f59e0b">
+                  <IconText icon={Clock}>مراجعة قريبة</IconText>
+                </Badge>
+              )}
               <CountryPills countries={sop.countries} />
             </div>
-            <h1 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: "0 0 6px" }}>{sop.title}</h1>
-            <p style={{ color: "#64748b", fontSize: 14, margin: 0, lineHeight: 1.6 }}>{sop.objective}</p>
+            <h1 style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 900, margin: "0 0 6px" }}>{sop.title}</h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>{sop.objective}</p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-            <Badge color="#475569">v{sop.version}</Badge>
-            {creator && <span style={{ color: "#475569", fontSize: 11 }}>أنشأه: {creator.name}</span>}
-            <span style={{ color: "#475569", fontSize: 11 }}>👁{sop.views}</span>
+            <Badge color="var(--text-muted)">v{sop.version}</Badge>
+            {creator && <span style={{ color: "var(--text-muted)", fontSize: 11 }}>أنشأه: {creator.name}</span>}
+            <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+              <Eye className="h-3.5 w-3.5" />
+              {sop.views}
+            </span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {sop.keywords.map((k) => (
-            <span key={k} style={{ background: "#1e3a5f", color: "#93c5fd", borderRadius: 6, padding: "3px 12px", fontSize: 12 }}>
+            <span key={k} className="rounded-md bg-primary-soft px-3 py-0.5 text-xs text-primary">
               {k}
             </span>
           ))}
@@ -97,11 +138,11 @@ export function FullSopView({
       </div>
       <Tabs
         tabs={[
-          { id: "content", label: "📋 المحتوى" },
-          { id: "mindmap", label: "🧠 الخريطة" },
-          { id: "history", label: "📜 السجل" },
-          { id: "comments", label: `💬(${sop.comments.length})` },
-          { id: "ack", label: `👥(${sop.acknowledgments.length})` },
+          { id: "content", label: "المحتوى", icon: FileText },
+          { id: "mindmap", label: "الخريطة", icon: GitBranch },
+          { id: "history", label: "السجل", icon: History },
+          { id: "comments", label: String(sop.comments.length), icon: MessageSquare },
+          { id: "ack", label: String(sop.acknowledgments.length), icon: Users },
         ]}
         active={tab}
         onChange={setTab}
@@ -110,35 +151,35 @@ export function FullSopView({
         {tab === "content" && (
           <div className="makhzon-split">
             <div>
-              <Sec title="خطوات التنفيذ" color={dept.color}>
+              <Sec title="خطوات التنفيذ" color={dept.color} icon={ListChecks}>
                 {sop.steps.map((st, i) => (
                   <div key={st.id} style={{ ...T.card, borderLeft: `3px solid ${dept.color}`, borderRadius: 12, padding: "14px 20px", marginBottom: 10, display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg,${dept.color},${dept.color}88)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
                       {i + 1}
                     </div>
                     <div>
-                      <div style={{ color: "#cbd5e1", fontSize: 14, lineHeight: 1.7, paddingTop: 3 }}>{st.text}</div>
+                      <div style={{ color: "var(--text-primary)", fontSize: 14, lineHeight: 1.7, paddingTop: 3 }}>{st.text}</div>
                       {st.imageUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={st.imageUrl} alt="" style={{ marginTop: 8, maxWidth: "100%", borderRadius: 8, border: "1px solid #1e3a5f" }} />
+                        <img src={st.imageUrl} alt="" style={{ marginTop: 8, maxWidth: "100%", borderRadius: 8, border: "1px solid var(--border)" }} />
                       )}
                     </div>
                   </div>
                 ))}
               </Sec>
               {sop.decisionRules.length > 0 && (
-                <Sec title="قواعد القرار" color="#a78bfa">
+                <Sec title="قواعد القرار" color="#a78bfa" icon={GitBranch}>
                   {sop.decisionRules.map((r, i) => (
                     <div key={i} className="makhzon-rule">
-                      <div style={{ background: "#1e1030", border: "1px solid #7c3aed44", borderRadius: 8, padding: "8px 12px", color: "#c4b5fd", fontSize: 13 }}>لو: {r.condition}</div>
+                      <div style={{ background: "#f6f1fb", border: "1px solid #7c3aed44", borderRadius: 8, padding: "8px 12px", color: "#7c3aed", fontSize: 13 }}>لو: {r.condition}</div>
                       <div style={{ color: "#7c3aed", fontSize: 18 }}>→</div>
-                      <div style={{ background: "#0a1f10", border: "1px solid #16a34a44", borderRadius: 8, padding: "8px 12px", color: "#86efac", fontSize: 13 }}>{r.action}</div>
+                      <div style={{ background: "var(--success-soft)", border: "1px solid #16a34a44", borderRadius: 8, padding: "8px 12px", color: "var(--success)", fontSize: 13 }}>{r.action}</div>
                     </div>
                   ))}
                 </Sec>
               )}
               {sop.escalationContacts?.length > 0 && (
-                <Sec title="جهات التصعيد — حسب نوع المشكلة" color="#f59e0b">
+                <Sec title="جهات التصعيد — حسب نوع المشكلة" color="#f59e0b" icon={Phone}>
                   <EscFinder contacts={sop.escalationContacts} countryId={countryId} />
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {sop.escalationContacts.map((c, i) => (
@@ -148,11 +189,11 @@ export function FullSopView({
                 </Sec>
               )}
               {sop.commonMistakes.length > 0 && (
-                <Sec title="الأخطاء الشائعة" color="#ef4444">
+                <Sec title="الأخطاء الشائعة" color="#ef4444" icon={CircleAlert}>
                   {sop.commonMistakes.map((m, i) => (
-                    <div key={i} style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 10, padding: "12px 16px", marginBottom: 8, display: "flex", gap: 10 }}>
-                      <span>⚠️</span>
-                      <span style={{ color: "#fca5a5", fontSize: 14 }}>{m}</span>
+                    <div key={i} style={{ background: "var(--danger-soft)", border: "1px solid #ef444433", borderRadius: 10, padding: "12px 16px", marginBottom: 8, display: "flex", gap: 10 }}>
+                      <TriangleAlert className="h-4 w-4 shrink-0 text-danger" />
+                      <span style={{ color: "var(--danger)", fontSize: 14 }}>{m}</span>
                     </div>
                   ))}
                 </Sec>
@@ -161,15 +202,19 @@ export function FullSopView({
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {sop.videoLink && (
                 <div style={T.card}>
-                  <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 700, marginBottom: 10 }}>🎬 فيديو</div>
-                  <a href={sop.videoLink} target="_blank" rel="noreferrer" style={{ display: "block", background: "#0f172a", border: "1px solid #3b82f633", borderRadius: 10, padding: "10px 14px", color: "#3b82f6", fontSize: 13, textDecoration: "none" }}>
-                    ▶ مشاهدة
+                  <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                    <Video className="h-3.5 w-3.5" /> فيديو
+                  </div>
+                  <a href={sop.videoLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-info/20 bg-surface-sunken px-3.5 py-2.5 text-[13px] text-info no-underline">
+                    <Play className="h-3.5 w-3.5" /> مشاهدة
                   </a>
                 </div>
               )}
               {sop.attachments?.length > 0 && (
                 <div style={T.card}>
-                  <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 700, marginBottom: 12 }}>📎 الملفات</div>
+                  <div className="mb-3 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                    <Paperclip className="h-3.5 w-3.5" /> الملفات
+                  </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {sop.attachments.map((a, i) => (
                       <AttCard key={i} att={a} />
@@ -178,17 +223,21 @@ export function FullSopView({
                 </div>
               )}
               <div style={T.card}>
-                <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 700, marginBottom: 10 }}>🎯 الحالات</div>
+                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                  <Target className="h-3.5 w-3.5" /> الحالات
+                </div>
                 {sop.relatedStatuses.map((s) => (
-                  <div key={s} style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 8, padding: "6px 12px", color: "#93c5fd", fontSize: 12, marginBottom: 6 }}>
+                  <div key={s} style={{ background: "var(--surface-sunken)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", color: "var(--primary)", fontSize: 12, marginBottom: 6 }}>
                     {s}
                   </div>
                 ))}
               </div>
               <div style={T.card}>
-                <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 700, marginBottom: 10 }}>⚡ الإجراءات</div>
+                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                  <Zap className="h-3.5 w-3.5" /> الإجراءات
+                </div>
                 {sop.relatedActions.map((s) => (
-                  <div key={s} style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 8, padding: "6px 12px", color: "#93c5fd", fontSize: 12, marginBottom: 6 }}>
+                  <div key={s} style={{ background: "var(--surface-sunken)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", color: "var(--primary)", fontSize: 12, marginBottom: 6 }}>
                     {s}
                   </div>
                 ))}
@@ -196,10 +245,10 @@ export function FullSopView({
               <div style={T.card}>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button disabled={busy} onClick={() => onVote(sop.id, "helpful")} style={{ flex: 1, background: "#16a34a18", color: "#22c55e", border: "1px solid #22c55e33", borderRadius: 8, padding: 8, cursor: "pointer", fontFamily: "inherit" }}>
-                    👍{sop.helpfulCount}
+                    <IconText icon={ThumbsUp}>{sop.helpfulCount}</IconText>
                   </button>
                   <button disabled={busy} onClick={() => onVote(sop.id, "notHelpful")} style={{ flex: 1, background: "#dc262618", color: "#ef4444", border: "1px solid #ef444433", borderRadius: 8, padding: 8, cursor: "pointer", fontFamily: "inherit" }}>
-                    👎{sop.notHelpfulCount}
+                    <IconText icon={ThumbsDown}>{sop.notHelpfulCount}</IconText>
                   </button>
                 </div>
               </div>
@@ -213,18 +262,18 @@ export function FullSopView({
               const u = users.find((x) => x.id === h.by);
               return (
                 <div key={i} style={{ ...T.card, display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#1e3a5f,#334155)", display: "flex", alignItems: "center", justifyContent: "center", color: "#93c5fd", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-xs font-bold text-primary">
                     v{h.version}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ color: "#f1f5f9", fontWeight: 600, fontSize: 14 }}>{h.note}</span>
-                      <span style={{ color: "#475569", fontSize: 12 }}>{h.date}</span>
+                      <span style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>{h.note}</span>
+                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{h.date}</span>
                     </div>
                     {u && (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         <Av initials={u.avatar || u.name.slice(0, 2)} color={getRole(u.role).color} size={22} />
-                        <span style={{ color: "#64748b", fontSize: 12 }}>{u.name}</span>
+                        <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>{u.name}</span>
                       </div>
                     )}
                   </div>
@@ -255,7 +304,7 @@ export function FullSopView({
               </div>
             )}
             {sop.comments.length === 0 ? (
-              <div style={{ ...T.card, textAlign: "center", color: "#475569", padding: 40 }}>لا توجد تعليقات</div>
+              <div style={{ ...T.card, textAlign: "center", color: "var(--text-muted)", padding: 40 }}>لا توجد تعليقات</div>
             ) : (
               sop.comments.map((c) => {
                 const u = users.find((x) => x.id === c.userId);
@@ -264,10 +313,10 @@ export function FullSopView({
                     {u && <Av initials={u.avatar || u.name.slice(0, 2)} color={getRole(u.role).color} />}
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ color: "#f1f5f9", fontWeight: 600, fontSize: 14 }}>{u?.name}</span>
-                        <span style={{ color: "#475569", fontSize: 12 }}>{c.date}</span>
+                        <span style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>{u?.name}</span>
+                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{c.date}</span>
                       </div>
-                      <div style={{ color: "#94a3b8", fontSize: 14, lineHeight: 1.6 }}>{c.text}</div>
+                      <div style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>{c.text}</div>
                     </div>
                   </div>
                 );
@@ -279,8 +328,8 @@ export function FullSopView({
           <div>
             <div style={{ ...T.card, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ color: "#f1f5f9", fontWeight: 700 }}>نسبة القراءة (هذه النسخة)</div>
-                <div style={{ color: "#64748b", fontSize: 13 }}>{sop.acknowledgments.length} قرأوه</div>
+                <div style={{ color: "var(--text-primary)", fontWeight: 700 }}>نسبة القراءة (هذه النسخة)</div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>{sop.acknowledgments.length} قرأوه</div>
               </div>
               <div style={{ color: "#3b82f6", fontWeight: 900, fontSize: 28 }}>
                 {users.filter((u) => u.active).length ? Math.round((sop.acknowledgments.length / users.filter((u) => u.active).length) * 100) : 0}%
@@ -292,11 +341,11 @@ export function FullSopView({
                 .map((u) => {
                   const read = sop.acknowledgments.includes(u.id);
                   return (
-                    <div key={u.id} style={{ ...T.card, display: "flex", gap: 10, alignItems: "center", padding: "12px 16px", borderLeft: `3px solid ${read ? "#22c55e" : "#334155"}` }}>
+                    <div key={u.id} style={{ ...T.card, display: "flex", gap: 10, alignItems: "center", padding: "12px 16px", borderLeft: `3px solid ${read ? "#22c55e" : "var(--border-strong)"}` }}>
                       <Av initials={u.avatar || u.name.slice(0, 2)} color={getRole(u.role).color} size={32} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: "#f1f5f9", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</div>
-                        <div style={{ color: read ? "#22c55e" : "#64748b", fontSize: 11 }}>{read ? "✓ قرأه" : "لم يقرأه بعد"}</div>
+                        <div style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</div>
+                        <div style={{ color: read ? "#22c55e" : "var(--text-secondary)", fontSize: 11 }}>{read ? "قرأه" : "لم يقرأه بعد"}</div>
                       </div>
                     </div>
                   );

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Role, IssueSeverity, IssueStatus } from "@prisma/client";
 
 const step = z.object({
   id: z.string().optional(),
@@ -48,8 +47,8 @@ export const issueBodySchema = z.object({
   title: z.string().trim().min(1, "يرجى كتابة عنوان للمشكلة"),
   department: z.string().min(1),
   category: z.string().min(1),
-  severity: z.nativeEnum(IssueSeverity).default(IssueSeverity.medium),
-  status: z.nativeEnum(IssueStatus).default(IssueStatus.open),
+  severity: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+  status: z.enum(["open", "progress", "resolved", "recurring"]).default("open"),
   date: z.string().min(1),
   reportedBy: z.string().optional(),
   affectedUsers: z.array(z.string()).default([]),
@@ -67,7 +66,7 @@ export const userBodySchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().email(),
   password: z.string().min(4).optional(),
-  role: z.nativeEnum(Role).default(Role.employee),
+  role: z.enum(["super_admin", "admin", "team_leader", "employee"]).default("employee"),
   department: z.string().min(1),
   position: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),

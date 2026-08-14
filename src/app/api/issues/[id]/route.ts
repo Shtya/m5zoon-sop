@@ -45,8 +45,8 @@ export async function PUT(request: Request, ctx: Ctx) {
           solution: f.solution,
           preventionSteps: cleanStrings(f.preventionSteps),
           videoLink: f.videoLink || "",
-          isRecurring: f.isRecurring,
-          recurrenceCount: f.isRecurring ? f.recurrenceCount : 1,
+          isRecurring: f.isRecurring || f.status === "recurring",
+          recurrenceCount: f.isRecurring || f.status === "recurring" ? f.recurrenceCount : 1,
           countries: { create: f.countries.map((countryId) => ({ countryId })) },
           affectedUsers: {
             create: [...new Set(f.affectedUsers)].map((userId) => ({ userId })),

@@ -1,54 +1,55 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FileText, Lightbulb, Search, Zap } from "lucide-react";
 import { ORDER_STATUSES, SMART_SYNONYMS, getDept } from "@/lib/constants";
 import type { PublicSop } from "@/lib/types";
-import { DeptBadge, T } from "@/components/ui";
+import { DeptBadge, EmptyState, PageHeader, T } from "@/components/ui";
+import { Dropdown } from "@/components/ui/dropdown";
+import { IconText } from "@/components/icons";
 
 export function OrderSim({ sops, onQuick }: { sops: PublicSop[]; onQuick: (s: PublicSop) => void }) {
   const [status, setStatus] = useState("Confirmed");
   const suggested = useMemo(() => sops.filter((s) => s.relatedStatuses.includes(status)), [sops, status]);
   return (
     <div>
-      <h2 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: "0 0 20px" }}>🛒 محاكاة صفحة الطلب</h2>
-      <div style={{ ...T.card, marginBottom: 18 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 16 }}>
+      <PageHeader title="محاكاة صفحة الطلب" description="اختر حالة الطلب لعرض الإجراءات المرتبطة." />
+      <div className="surface-card mb-[18px]">
+        <div className="mb-4 grid grid-cols-3 gap-4">
           {[{ l: "رقم الطلب", v: "#ORD-4892" }, { l: "العميل", v: "أحمد محمد" }, { l: "المبلغ", v: "٣٤٥ ريال" }].map((f) => (
             <div key={f.l}>
-              <div style={{ color: "#475569", fontSize: 11 }}>{f.l}</div>
-              <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 15, marginTop: 2 }}>{f.v}</div>
+              <div className="text-[11px] text-text-muted">{f.l}</div>
+              <div className="mt-0.5 text-[15px] font-bold text-foreground">{f.v}</div>
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ color: "#64748b", fontSize: 13 }}>الحالة:</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ ...T.input, maxWidth: 220, cursor: "pointer" }}>
-            {ORDER_STATUSES.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
+        <div className="flex max-w-xs items-center gap-3">
+          <span className="shrink-0 text-[13px] text-muted-foreground">الحالة:</span>
+          <Dropdown value={status} onChange={setStatus} options={ORDER_STATUSES.map((s) => ({ value: s, label: s }))} className="flex-1" />
         </div>
       </div>
       {suggested.length > 0 ? (
         <div>
-          <div style={{ background: "#0d1f0d", border: "1px solid #22c55e44", borderRadius: 12, padding: "12px 18px", marginBottom: 12, color: "#86efac", fontWeight: 600 }}>
-            💡 وُجد {suggested.length} إجراء مناسب — اضغط مساعدة لعرض Quick SOP
+          <div className="mb-3 rounded-[var(--radius-lg)] border border-success/25 bg-success-soft px-[18px] py-3 font-semibold text-success">
+            <IconText icon={Lightbulb}>وُجد {suggested.length} إجراء مناسب — اضغط مساعدة لعرض Quick SOP</IconText>
           </div>
           {suggested.map((s) => {
             const dept = getDept(s.department);
             return (
-              <div key={s.id} style={{ ...T.card, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div key={s.id} className="mb-2.5 flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-xs">
                 <div>
-                  <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{s.title}</div>
+                  <div className="mb-1.5 text-sm font-bold text-foreground">{s.title}</div>
                   <DeptBadge deptId={s.department} />
                 </div>
-                <button onClick={() => onQuick(s)} style={T.btn(dept.color)}>⚡ مساعدة</button>
+                <button type="button" onClick={() => onQuick(s)} style={T.btn(dept.color)}>
+                  <IconText icon={Zap}>مساعدة</IconText>
+                </button>
               </div>
             );
           })}
         </div>
       ) : (
-        <div style={{ ...T.card, textAlign: "center", color: "#475569", padding: 40 }}>لا توجد إجراءات مرتبطة</div>
+        <EmptyState title="لا توجد إجراءات مرتبطة" description="جرّب حالة طلب أخرى." />
       )}
     </div>
   );
@@ -73,33 +74,58 @@ export function SmartSearch({
   const hints = Object.keys(SMART_SYNONYMS);
   return (
     <div>
-      <h2 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: "0 0 8px" }}>🤖 البحث الذكي</h2>
-      <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 20px" }}>البحث يتم على PostgreSQL (عنوان، كلمات مفتاحية، هدف، حالات، إجراءات)</p>
-      <div style={{ ...T.card, marginBottom: 20 }}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
-          <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSearch(q)} placeholder='"العميل مش رد" أو "الطرد تالف"' style={{ ...T.input, flex: 1, padding: "12px 14px" }} />
-          <button onClick={() => onSearch(q)} disabled={loading} style={{ ...T.btn(), padding: "0 24px", opacity: loading ? 0.6 : 1 }}>{loading ? "..." : "بحث 🔍"}</button>
+      <PageHeader title="البحث الذكي" description="البحث يتم على PostgreSQL (عنوان، كلمات مفتاحية، هدف، حالات، إجراءات)" />
+      <div className="surface-card mb-5">
+        <div className="mb-2.5 flex gap-3">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSearch(q)}
+            placeholder='"العميل مش رد" أو "الطرد تالف"'
+            className="field-input flex-1"
+          />
+          <button type="button" onClick={() => onSearch(q)} disabled={loading} className="btn-primary px-6">
+            {loading ? "..." : <IconText icon={Search}>بحث</IconText>}
+          </button>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-2">
           {hints.map((s) => (
-            <button key={s} onClick={() => { setQ(s); onSearch(s); }} style={{ background: "#1e3a5f", color: "#93c5fd", border: "none", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>{s}</button>
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                setQ(s);
+                onSearch(s);
+              }}
+              className="rounded-md bg-primary-soft px-3 py-1.5 text-xs text-primary"
+            >
+              {s}
+            </button>
           ))}
         </div>
       </div>
-      {loading && <div style={{ ...T.card, textAlign: "center", padding: 40, color: "#94a3b8" }}>جاري البحث في قاعدة البيانات...</div>}
-      {!loading && reason && <div style={{ background: "#0d1f0d", border: "1px solid #22c55e33", borderRadius: 12, padding: "12px 18px", marginBottom: 14, color: "#86efac", fontSize: 14 }}>💡 {reason}</div>}
-      {!loading && results.length === 0 && reason && <div style={{ ...T.card, textAlign: "center", color: "#475569", padding: 48 }}>لم أجد إجراء مناسب</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
+      {loading && <div className="surface-card py-10 text-center text-muted-foreground">جاري البحث في قاعدة البيانات...</div>}
+      {!loading && reason && (
+        <div className="mb-3.5 rounded-[var(--radius-lg)] border border-success/20 bg-success-soft px-[18px] py-3 text-sm text-success">
+          <IconText icon={Lightbulb}>{reason}</IconText>
+        </div>
+      )}
+      {!loading && results.length === 0 && reason && <EmptyState title="لم أجد إجراء مناسب" />}
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
         {results.map((s) => {
           const dept = getDept(s.department);
           return (
-            <div key={s.id} style={{ ...T.card, borderLeft: `4px solid ${dept.color}` }}>
+            <div key={s.id} className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-xs" style={{ borderInlineStartWidth: 4, borderInlineStartColor: dept.color }}>
               <DeptBadge deptId={s.department} />
-              <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 15, margin: "8px 0 4px" }}>{s.title}</div>
-              <div style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>{s.objective}</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => onOpen(s)} style={{ ...T.btn(dept.color), flex: 1, padding: "7px 0" }}>📋 عرض</button>
-                <button onClick={() => onQuick(s)} style={{ ...T.ghost, flex: 1, color: "#93c5fd" }}>⚡</button>
+              <div className="my-2 text-[15px] font-bold text-foreground">{s.title}</div>
+              <div className="mb-3 text-[13px] text-muted-foreground">{s.objective}</div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => onOpen(s)} style={{ ...T.btn(dept.color), flex: 1, padding: "7px 0" }}>
+                  <IconText icon={FileText}>عرض</IconText>
+                </button>
+                <button type="button" onClick={() => onQuick(s)} className="btn-outline flex-1">
+                  <Zap className="h-4 w-4" />
+                </button>
               </div>
             </div>
           );

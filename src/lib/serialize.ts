@@ -7,7 +7,12 @@ function asArray<T>(value: unknown): T[] {
 
 function ymd(d: Date | string | null | undefined) {
   if (!d) return null;
-  return new Date(d).toISOString().slice(0, 10);
+  const dt = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(dt.getTime())) return null;
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(dt.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export function snapshotFromSop(sop: {

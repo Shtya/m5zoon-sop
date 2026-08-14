@@ -1,11 +1,11 @@
 export const DEPARTMENTS = [
-  { id: "call-center", label: "Call Center", icon: "📞", color: "#3B82F6" },
-  { id: "account-manager", label: "Account Manager", icon: "👤", color: "#8B5CF6" },
-  { id: "warehouse", label: "Warehouse", icon: "🏭", color: "#F59E0B" },
-  { id: "shipping", label: "Shipping", icon: "🚚", color: "#10B981" },
-  { id: "data-entry", label: "Data Entry", icon: "📝", color: "#EC4899" },
-  { id: "operations", label: "Operations", icon: "⚙️", color: "#6366F1" },
-  { id: "finance", label: "Finance", icon: "💰", color: "#14B8A6" },
+  { id: "call-center", label: "Call Center", color: "#3B82F6" },
+  { id: "account-manager", label: "Account Manager", color: "#8B5CF6" },
+  { id: "warehouse", label: "Warehouse", color: "#F59E0B" },
+  { id: "shipping", label: "Shipping", color: "#10B981" },
+  { id: "data-entry", label: "Data Entry", color: "#EC4899" },
+  { id: "operations", label: "Operations", color: "#6366F1" },
+  { id: "finance", label: "Finance", color: "#14B8A6" },
 ] as const;
 
 export const ORDER_STATUSES = [
@@ -33,17 +33,17 @@ export const RELATED_ACTIONS = [
 ] as const;
 
 export const ROLES = [
-  { id: "super_admin", label: "Super Admin", icon: "👑", color: "#f59e0b" },
-  { id: "admin", label: "Admin", icon: "🛡", color: "#3b82f6" },
-  { id: "team_leader", label: "Team Leader", icon: "⭐", color: "#8b5cf6" },
-  { id: "employee", label: "Employee", icon: "👤", color: "#64748b" },
+  { id: "super_admin", label: "Super Admin", color: "#f59e0b" },
+  { id: "admin", label: "Admin", color: "#3b82f6" },
+  { id: "team_leader", label: "Team Leader", color: "#8b5cf6" },
+  { id: "employee", label: "Employee", color: "#64748b" },
 ] as const;
 
 export const COUNTRIES = [
-  { id: "ae", name: "الإمارات", flag: "🇦🇪", color: "#10B981" },
-  { id: "sa", name: "السعودية", flag: "🇸🇦", color: "#22c55e" },
-  { id: "jo", name: "الأردن", flag: "🇯🇴", color: "#ef4444" },
-  { id: "om", name: "عُمان", flag: "🇴🇲", color: "#f59e0b" },
+  { id: "ae", name: "الإمارات", code: "AE", color: "#10B981" },
+  { id: "sa", name: "السعودية", code: "SA", color: "#22c55e" },
+  { id: "jo", name: "الأردن", code: "JO", color: "#ef4444" },
+  { id: "om", name: "عُمان", code: "OM", color: "#f59e0b" },
 ] as const;
 
 export const COUNTRY_PHONE_PREFIX: Record<string, string> = {
@@ -66,14 +66,14 @@ export const PROBLEM_TYPES = [
 ] as const;
 
 export const ISSUE_CATS = [
-  { id: "shipping_co", label: "شركة شحن", icon: "🚚", color: "#10B981" },
-  { id: "customer", label: "مشكلة عميل", icon: "👤", color: "#3B82F6" },
-  { id: "system", label: "سيستم", icon: "💻", color: "#6366F1" },
-  { id: "call_center", label: "Call Center", icon: "📞", color: "#EC4899" },
-  { id: "packaging", label: "تغليف", icon: "📦", color: "#F59E0B" },
-  { id: "warehouse_i", label: "مخزن", icon: "🏭", color: "#F97316" },
-  { id: "finance_i", label: "مالية", icon: "💰", color: "#14B8A6" },
-  { id: "other", label: "أخرى", icon: "🔧", color: "#64748b" },
+  { id: "shipping_co", label: "شركة شحن", color: "#10B981" },
+  { id: "customer", label: "مشكلة عميل", color: "#3B82F6" },
+  { id: "system", label: "سيستم", color: "#6366F1" },
+  { id: "call_center", label: "Call Center", color: "#EC4899" },
+  { id: "packaging", label: "تغليف", color: "#F59E0B" },
+  { id: "warehouse_i", label: "مخزن", color: "#F97316" },
+  { id: "finance_i", label: "مالية", color: "#14B8A6" },
+  { id: "other", label: "أخرى", color: "#64748b" },
 ] as const;
 
 export const SEVERITY = [
@@ -134,7 +134,13 @@ export function isExpired(d?: string | Date | null) {
 
 export function toDateInput(d?: string | Date | null) {
   if (!d) return "";
-  return new Date(d).toISOString().slice(0, 10);
+  if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return "";
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(dt.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export function initials(name: string) {

@@ -1,49 +1,49 @@
 "use client";
 
+import { Check, Globe } from "lucide-react";
 import { COUNTRIES } from "@/lib/constants";
+import { cn } from "@/lib/cn";
 
 export function CountryBar({ active, onChange }: { active: string; onChange: (id: string) => void }) {
   return (
-    <div style={{ background: "#0f172a", borderBottom: "1px solid #1e3a5f", padding: "0 20px" }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", gap: 6, height: 44, overflowX: "auto" }}>
-        <span style={{ color: "#475569", fontSize: 12, marginLeft: 8, flexShrink: 0 }}>🌍 الدولة:</span>
+    <div className="rounded-2xl border border-border bg-surface/95 px-4 shadow-lg sm:px-6">
+      <div className="flex h-11 items-center gap-1.5 overflow-x-auto">
+        <span className="ms-2 inline-flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <Globe className="h-3.5 w-3.5" strokeWidth={1.8} />
+          الدولة:
+        </span>
         <button
+          type="button"
           onClick={() => onChange("all")}
-          style={{
-            background: active === "all" ? "#1e3a5f" : "transparent",
-            color: active === "all" ? "#93c5fd" : "#64748b",
-            border: "none",
-            borderRadius: 8,
-            padding: "5px 14px",
-            cursor: "pointer",
-            fontWeight: active === "all" ? 700 : 500,
-            fontSize: 13,
-            fontFamily: "inherit",
-          }}
+          className={cn(
+            "rounded-md px-3.5 py-1.5 text-[13px] transition-colors",
+            active === "all"
+              ? "bg-primary-soft font-semibold text-primary"
+              : "font-medium text-muted-foreground hover:bg-surface-sunken hover:text-foreground",
+          )}
         >
           الكل
         </button>
         {COUNTRIES.map((c) => (
           <button
             key={c.id}
+            type="button"
             onClick={() => onChange(c.id)}
-            style={{
-              background: active === c.id ? c.color + "22" : "transparent",
-              color: active === c.id ? c.color : "#64748b",
-              border: active === c.id ? `1px solid ${c.color}44` : "1px solid transparent",
-              borderRadius: 8,
-              padding: "5px 14px",
-              cursor: "pointer",
-              fontWeight: active === c.id ? 700 : 500,
-              fontSize: 13,
-              fontFamily: "inherit",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              flexShrink: 0,
-            }}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[13px] transition-colors",
+              active === c.id ? "font-semibold" : "font-medium text-muted-foreground hover:bg-surface-sunken",
+            )}
+            style={
+              active === c.id
+                ? {
+                    background: `color-mix(in srgb, ${c.color} 14%, white)`,
+                    color: c.color,
+                    border: `1px solid color-mix(in srgb, ${c.color} 28%, transparent)`,
+                  }
+                : undefined
+            }
           >
-            <span>{c.flag}</span>
+            <span className="font-mono text-[10px] font-semibold">{c.code}</span>
             <span>{c.name}</span>
           </button>
         ))}
@@ -61,7 +61,7 @@ export function CountryPicker({
 }) {
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="flex flex-wrap gap-2">
         {COUNTRIES.map((c) => {
           const sel = value.includes(c.id);
           return (
@@ -69,28 +69,28 @@ export function CountryPicker({
               key={c.id}
               type="button"
               onClick={() => onChange(sel ? value.filter((x) => x !== c.id) : [...value, c.id])}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: sel ? c.color + "22" : "#0f172a",
-                color: sel ? c.color : "#64748b",
-                border: `1px solid ${sel ? c.color + "55" : "#334155"}`,
-                borderRadius: 10,
-                padding: "8px 16px",
-                cursor: "pointer",
-                fontWeight: sel ? 700 : 500,
-                fontSize: 13,
-                fontFamily: "inherit",
-              }}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border px-4 py-2 text-[13px] transition-colors",
+                sel ? "font-semibold" : "border-border-strong bg-surface-sunken font-medium text-muted-foreground",
+              )}
+              style={
+                sel
+                  ? {
+                      background: `color-mix(in srgb, ${c.color} 14%, white)`,
+                      color: c.color,
+                      borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)`,
+                    }
+                  : undefined
+              }
             >
-              {c.flag} {c.name}
-              {sel && <span style={{ fontSize: 10 }}>✓</span>}
+              <span className="font-mono text-[10px] font-semibold">{c.code}</span>
+              {c.name}
+              {sel && <Check className="h-3 w-3" />}
             </button>
           );
         })}
       </div>
-      <div style={{ color: "#475569", fontSize: 11, marginTop: 6 }}>اتركها فاضية = تظهر في كل الدول</div>
+      <div className="mt-1.5 text-[11px] text-text-muted">اتركها فاضية = تظهر في كل الدول</div>
     </div>
   );
 }

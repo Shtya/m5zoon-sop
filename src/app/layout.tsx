@@ -5,6 +5,7 @@ import "./globals.css";
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
   weight: ["400", "600", "700", "800", "900"],
+  variable: "--font-cairo",
 });
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" className={`${cairo.className} h-full antialiased`}>
+    <html lang="ar" dir="rtl" className={`${cairo.variable} ${cairo.className} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

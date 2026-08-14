@@ -55,7 +55,6 @@ export async function GET(request: Request) {
     const byDept = DEPARTMENTS.map((d) => ({
       id: d.id,
       label: d.label,
-      icon: d.icon,
       color: d.color,
       sops: sops.filter((s) => s.department === d.id).length,
       views: views.filter((v) => v.sop.department === d.id).length,
@@ -65,7 +64,7 @@ export async function GET(request: Request) {
     const byCountry = COUNTRIES.map((c) => ({
       id: c.id,
       name: c.name,
-      flag: c.flag,
+      code: c.code,
       color: c.color,
       sops: sops.filter((s) => s.countries.length === 0 || s.countries.some((x) => x.countryId === c.id)).length,
       issues: issues.filter((i) => i.countries.length === 0 || i.countries.some((x) => x.countryId === c.id)).length,

@@ -1,9 +1,11 @@
 "use client";
 
+import { Check, Clock, Eye, FileText, ListChecks, MessageSquare, Paperclip, Phone, ThumbsUp, TriangleAlert, Zap } from "lucide-react";
 import { getDept, isExpired, isExpiring } from "@/lib/constants";
 import type { PublicSop } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth";
 import { Badge, CountryPills, DeptBadge, T } from "@/components/ui";
+import { IconText } from "@/components/icons";
 
 export function SopCard({
   sop,
@@ -22,59 +24,67 @@ export function SopCard({
   const expiring = isExpiring(sop.reviewDate);
   return (
     <div
-      style={{ ...T.card, borderLeft: `4px solid ${dept.color}`, display: "flex", flexDirection: "column", gap: 14 }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = `0 8px 32px ${dept.color}22`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "";
-        e.currentTarget.style.boxShadow = "";
-      }}
+      className="flex flex-col gap-3.5 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-xs transition duration-[180ms] hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderInlineStartWidth: 4, borderInlineStartColor: dept.color }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+      <div className="flex justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap gap-1.5">
             <DeptBadge deptId={sop.department} />
-            {ackd && <Badge color="#22c55e">✓ قرأته</Badge>}
-            {expired && <Badge color="#ef4444">⚠️ منتهي</Badge>}
-            {expiring && !expired && <Badge color="#f59e0b">⏰</Badge>}
+            {ackd && (
+              <Badge color="#0a6e55">
+                <IconText icon={Check}>قرأته</IconText>
+              </Badge>
+            )}
+            {expired && (
+              <Badge color="#c7402d">
+                <IconText icon={TriangleAlert}>منتهي</IconText>
+              </Badge>
+            )}
+            {expiring && !expired && (
+              <Badge color="#d97706">
+                <IconText icon={Clock}>قريب الانتهاء</IconText>
+              </Badge>
+            )}
             <CountryPills countries={sop.countries || []} />
           </div>
-          <div style={{ color: "#f1f5f9", fontSize: 16, fontWeight: 700 }}>{sop.title}</div>
-          <div style={{ color: "#64748b", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>{sop.objective}</div>
+          <div className="text-base font-bold text-foreground">{sop.title}</div>
+          <div className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{sop.objective}</div>
         </div>
-        <span style={{ background: "#0f172a", border: "1px solid #334155", color: "#64748b", borderRadius: 6, padding: "2px 8px", fontSize: 11, height: "fit-content", flexShrink: 0 }}>
+        <span className="h-fit shrink-0 rounded-md border border-border bg-surface-sunken px-2 py-0.5 text-[11px] text-muted-foreground">
           v{sop.version}
         </span>
       </div>
       {sop.escalationContacts?.length > 0 && (
-        <div style={{ background: "#1a110033", border: "1px solid #f59e0b22", borderRadius: 10, padding: "8px 12px" }}>
-          <span style={{ color: "#d97706", fontSize: 12, fontWeight: 600 }}>
-            📞 {[...new Set(sop.escalationContacts.map((c) => c.name))].join(" · ")}
+        <div className="rounded-[var(--radius-md)] border border-warning/20 bg-warning-soft px-3 py-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-warning">
+            <Phone className="h-3.5 w-3.5" />
+            {[...new Set(sop.escalationContacts.map((c) => c.name))].join(" · ")}
           </span>
         </div>
       )}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div className="flex flex-wrap gap-1.5">
         {sop.keywords.slice(0, 4).map((k) => (
-          <span key={k} style={{ background: "#1e3a5f", color: "#93c5fd", borderRadius: 6, padding: "2px 10px", fontSize: 11 }}>
+          <span key={k} className="rounded-md bg-primary-soft px-2.5 py-0.5 text-[11px] text-primary">
             {k}
           </span>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 12, color: "#64748b", fontSize: 12 }}>
-        <span>👁{sop.views}</span>
-        <span>✅{sop.steps.length}</span>
-        <span>💬{sop.comments.length}</span>
-        <span>👍{sop.helpfulCount}</span>
-        {sop.attachments?.length > 0 && <span>📎{sop.attachments.length}</span>}
+      <div className="flex gap-3 text-xs text-muted-foreground">
+        <IconText icon={Eye}>{sop.views}</IconText>
+        <IconText icon={ListChecks}>{sop.steps.length}</IconText>
+        <IconText icon={MessageSquare}>{sop.comments.length}</IconText>
+        <IconText icon={ThumbsUp}>{sop.helpfulCount}</IconText>
+        {sop.attachments?.length > 0 && (
+          <IconText icon={Paperclip}>{sop.attachments.length}</IconText>
+        )}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onOpen(sop)} style={{ ...T.btn(dept.color), flex: 1, padding: "9px 0" }}>
-          📋 عرض كامل
+      <div className="flex gap-2">
+        <button type="button" onClick={() => onOpen(sop)} style={{ ...T.btn(dept.color), flex: 1, padding: "9px 0" }}>
+          <IconText icon={FileText}>عرض كامل</IconText>
         </button>
-        <button onClick={() => onQuick(sop)} style={{ ...T.ghost, flex: 1, color: "#93c5fd" }}>
-          ⚡ سريع
+        <button type="button" onClick={() => onQuick(sop)} className="btn-outline flex-1">
+          <IconText icon={Zap}>سريع</IconText>
         </button>
       </div>
     </div>

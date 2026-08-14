@@ -3,13 +3,20 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
-import { RoleBadge, T } from "@/components/ui";
+import { CircleAlert } from "lucide-react";
+import { RoleBadge } from "@/components/ui";
 
 const DEMO = [
   { email: "omar@makhzon.com", password: "admin123", role: "super_admin" },
   { email: "sara@makhzon.com", password: "sara123", role: "admin" },
   { email: "khaled@makhzon.com", password: "khaled123", role: "team_leader" },
   { email: "nada@makhzon.com", password: "nada123", role: "employee" },
+];
+
+const FEATURES = [
+  { value: "SOP", label: "مكتبة إجراءات" },
+  { value: "ISSUE", label: "مشاكل يومية" },
+  { value: "ESC", label: "تصعيد ذكي" },
 ];
 
 export function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void }) {
@@ -35,52 +42,135 @@ export function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void })
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#020617", display: "flex", fontFamily: "'Cairo','Segoe UI',sans-serif", direction: "rtl" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: 48, background: "linear-gradient(135deg,#0f172a,#1e293b)" }}>
-        <div style={{ width: 68, height: 68, borderRadius: 18, background: "linear-gradient(135deg,#3b82f6,#6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, margin: "0 auto 20px", boxShadow: "0 0 40px #3b82f644" }}>
-          📚
-        </div>
-        <h1 style={{ color: "#f1f5f9", fontSize: 28, fontWeight: 900, margin: "0 0 8px", textAlign: "center" }}>Makhzon</h1>
-        <p style={{ color: "#64748b", fontSize: 15, margin: "0 0 32px", textAlign: "center" }}>نظام إدارة الإجراءات والمشاكل</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 320 }}>
-          {["📋 مكتبة SOPs بخريطة ذهنية", "🔥 توثيق المشاكل اليومية", "📞 تصعيد حسب نوع المشكلة", "🌍 فلترة حسب الدولة"].map((f) => (
-            <div key={f} style={{ background: "#1e293b88", border: "1px solid #334155", borderRadius: 10, padding: "10px 14px", color: "#94a3b8", fontSize: 13 }}>
-              {f}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ width: 440, maxWidth: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: 48, background: "#0f172a", borderRight: "1px solid #1e3a5f" }}>
-        <h2 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: "0 0 24px" }}>تسجيل الدخول</h2>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", color: "#94a3b8", fontSize: 12, fontWeight: 700, marginBottom: 7 }}>البريد الإلكتروني</label>
-          <input value={email} onChange={(e) => { setEmail(e.target.value); setErr(""); }} onKeyDown={(e) => e.key === "Enter" && go()} type="email" placeholder="example@makhzon.com" style={{ ...T.input, padding: "11px 14px" }} />
-        </div>
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ display: "block", color: "#94a3b8", fontSize: 12, fontWeight: 700, marginBottom: 7 }}>كلمة المرور</label>
-          <input value={pass} onChange={(e) => { setPass(e.target.value); setErr(""); }} onKeyDown={(e) => e.key === "Enter" && go()} type="password" placeholder="••••••••" style={{ ...T.input, padding: "11px 14px" }} />
-        </div>
-        {err && (
-          <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 10, padding: "10px 14px", color: "#fca5a5", fontSize: 13, marginBottom: 10 }}>
-            ⚠️ {err}
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <aside className="relative hidden overflow-hidden bg-ink-900 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(120,150,165,0.12) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(120,150,165,0.12) 1px, transparent 1px)
+            `,
+            backgroundSize: "32px 32px",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute -start-24 top-1/4 h-80 w-80 rounded-full opacity-30 blur-3xl"
+          style={{ background: "radial-gradient(circle, #0E8F6E 0%, transparent 70%)" }}
+        />
+        <div
+          className="pointer-events-none absolute -end-16 bottom-0 h-72 w-72 rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, #2C6FB0 0%, transparent 70%)" }}
+        />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-primary text-lg font-bold text-white">
+            م
           </div>
-        )}
-        <button onClick={go} disabled={loading} style={{ ...T.btn(), padding: 13, fontSize: 15, marginTop: 6, opacity: loading ? 0.6 : 1 }}>
-          {loading ? "جاري..." : "دخول ←"}
-        </button>
-        <div style={{ marginTop: 22, background: "#1e293b", border: "1px solid #334155", borderRadius: 12, padding: 14 }}>
-          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>حسابات تجريبية:</div>
-          {DEMO.map((u) => (
-            <button
-              key={u.email}
-              onClick={() => { setEmail(u.email); setPass(u.password); }}
-              style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 8, padding: "6px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 5, fontFamily: "inherit" }}
-            >
-              <span style={{ color: "#94a3b8", fontSize: 11 }}>{u.email}</span>
-              <RoleBadge role={u.role} />
-            </button>
-          ))}
+          <div>
+            <p className="text-lg font-semibold tracking-tight text-white">Makhzon</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-sidebar-muted">Knowledge ops</p>
+          </div>
         </div>
+
+        <div className="relative z-10 max-w-md">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">من السؤال إلى الإجراء</p>
+          <h2 className="mt-4 text-4xl font-semibold leading-[1.15] tracking-[-0.03em] text-white xl:text-5xl">
+            نظام واحد لإجراءات التشغيل والمشاكل اليومية.
+          </h2>
+          <p className="mt-5 text-[15px] leading-relaxed text-sidebar-muted">
+            مكتبة SOP، توثيق المشاكل، تصعيد حسب النوع، وفلترة حسب الدولة — كل ذلك داخل مساحة عمل واحدة.
+          </p>
+          <div className="mt-10 grid grid-cols-3 gap-4 border-t border-white/10 pt-8">
+            {FEATURES.map((item) => (
+              <div key={item.label}>
+                <p className="text-xl font-semibold text-white">{item.value}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-sidebar-muted">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="relative z-10 font-mono text-[10px] uppercase tracking-[0.12em] text-sidebar-muted">
+          Built for operations teams
+        </p>
+      </aside>
+
+      <div className="relative flex flex-col bg-paper">
+        <div className="flex items-center gap-2 px-6 py-5 lg:invisible sm:px-10">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-primary text-sm font-bold text-white">
+            م
+          </div>
+          <span className="text-sm font-semibold">Makhzon</span>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center px-6 py-8 sm:px-10">
+          <div className="w-full max-w-[400px]">
+            <div className="mb-8">
+              <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-foreground">تسجيل الدخول</h1>
+              <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">ادخل إلى مساحة عمل المخزون والإجراءات.</p>
+            </div>
+
+            <div className="rounded-[var(--radius-xl)] border border-border bg-surface p-6 shadow-sm sm:p-7">
+              <label className="mb-1.5 block text-[12.5px] font-medium text-foreground">البريد الإلكتروني</label>
+              <input
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErr("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && go()}
+                type="email"
+                placeholder="example@makhzon.com"
+                className="field-input mb-4"
+              />
+              <label className="mb-1.5 block text-[12.5px] font-medium text-foreground">كلمة المرور</label>
+              <input
+                value={pass}
+                onChange={(e) => {
+                  setPass(e.target.value);
+                  setErr("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && go()}
+                type="password"
+                placeholder="••••••••"
+                className="field-input mb-3"
+              />
+              {err && (
+                <div className="mb-3 rounded-[var(--radius-md)] border border-danger/25 bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
+                  <span className="inline-flex items-center gap-1.5">
+                    <CircleAlert className="h-3.5 w-3.5" /> {err}
+                  </span>
+                </div>
+              )}
+              <button type="button" onClick={go} disabled={loading} className="btn-primary mt-1 h-11 w-full text-[15px]">
+                {loading ? "جاري..." : "دخول"}
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
+              <div className="mb-2 text-[11px] font-semibold text-muted-foreground">حسابات تجريبية:</div>
+              {DEMO.map((u) => (
+                <button
+                  key={u.email}
+                  type="button"
+                  onClick={() => {
+                    setEmail(u.email);
+                    setPass(u.password);
+                  }}
+                  className="mb-1.5 flex w-full items-center justify-between rounded-md border border-border bg-surface-sunken px-3 py-1.5 last:mb-0 hover:bg-surface-hover"
+                >
+                  <span className="text-[11px] text-muted-foreground">{u.email}</span>
+                  <RoleBadge role={u.role} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <p className="px-6 pb-6 text-center font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted sm:px-10">
+          Secure workspace · Makhzon
+        </p>
       </div>
     </div>
   );

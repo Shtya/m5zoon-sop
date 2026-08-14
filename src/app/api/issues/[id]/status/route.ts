@@ -18,7 +18,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
   try {
     const issue = await prisma.issue.update({
       where: { id },
-      data: { status: body.status, updatedById: user.id },
+      data: {
+        status: body.status,
+        updatedById: user.id,
+        ...(body.status === "recurring" ? { isRecurring: true } : {}),
+      },
       include: issueInclude,
     });
     return jsonOk(serializeIssue(issue));

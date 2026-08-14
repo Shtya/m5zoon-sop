@@ -1,7 +1,9 @@
 "use client";
 
+import { GitBranch } from "lucide-react";
 import { getDept } from "@/lib/constants";
 import { T } from "@/components/ui";
+import { IconText } from "@/components/icons";
 import type { PublicSop } from "@/lib/types";
 
 export function MindMap({ sop }: { sop: PublicSop }) {
@@ -10,7 +12,7 @@ export function MindMap({ sop }: { sop: PublicSop }) {
   const N = steps.length;
   if (!N) {
     return (
-      <div style={{ ...T.card, textAlign: "center", color: "#475569", padding: 48 }}>
+      <div style={{ ...T.card, textAlign: "center", color: "var(--text-muted)", padding: 48 }}>
         لا توجد خطوات لعرضها في الخريطة الذهنية
       </div>
     );
@@ -33,10 +35,12 @@ export function MindMap({ sop }: { sop: PublicSop }) {
   const uid = sop.id.replace(/[^a-zA-Z0-9_-]/g, "");
   return (
     <div style={{ ...T.card, padding: 0, overflow: "hidden" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderBottom: "1px solid #1e3a5f" }}>
-        <span style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 14 }}>🧠 الخريطة الذهنية — خطوات التنفيذ ({N} خطوة)</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderBottom: "1px solid var(--border)" }}>
+        <span className="text-sm font-bold text-foreground">
+          <IconText icon={GitBranch}>الخريطة الذهنية — خطوات التنفيذ ({N} خطوة)</IconText>
+        </span>
       </div>
-      <div style={{ overflowX: "auto", background: "#020617" }}>
+      <div className="blueprint-bg overflow-x-auto">
         <svg width={SVG_W} height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} style={{ display: "block", minWidth: SVG_W }}>
           <defs>
             <linearGradient id={`rg-${uid}`} x1="0" y1="0" x2="1" y2="1">
@@ -68,16 +72,16 @@ export function MindMap({ sop }: { sop: PublicSop }) {
             const h = l2 ? 62 : 46;
             return (
               <g key={sn.id}>
-                <rect x={sn.x - 96} y={sn.y - h / 2} width={192} height={h} rx="10" fill="#1e293b" stroke={dept.color + "77"} strokeWidth="1.5" />
+                <rect x={sn.x - 96} y={sn.y - h / 2} width={192} height={h} rx="10" fill="#1f3350" stroke={dept.color + "77"} strokeWidth="1.5" />
                 <rect x={sn.x - 88} y={sn.y - 12} width={22} height={22} rx="5" fill={dept.color} />
                 <text x={sn.x - 77} y={sn.y + 4} textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="Cairo,sans-serif">
                   {sn.index}
                 </text>
-                <text x={sn.x + 6} y={l2 ? sn.y - 4 : sn.y + 4} textAnchor="middle" fill="#cbd5e1" fontSize="9.5" fontFamily="Cairo,sans-serif">
+                <text x={sn.x + 6} y={l2 ? sn.y - 4 : sn.y + 4} textAnchor="middle" fill="#eaf0f7" fontSize="9.5" fontFamily="Cairo,sans-serif">
                   {l1}
                 </text>
                 {l2 && (
-                  <text x={sn.x + 6} y={sn.y + 13} textAnchor="middle" fill="#94a3b8" fontSize="9" fontFamily="Cairo,sans-serif">
+                  <text x={sn.x + 6} y={sn.y + 13} textAnchor="middle" fill="#8ca0b8" fontSize="9" fontFamily="Cairo,sans-serif">
                     {l2}
                   </text>
                 )}
@@ -86,13 +90,13 @@ export function MindMap({ sop }: { sop: PublicSop }) {
           })}
         </svg>
       </div>
-      <div style={{ padding: "12px 20px", borderTop: "1px solid #1e3a5f", display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", flexWrap: "wrap", gap: 8 }}>
         {steps.map((st, i) => (
-          <div key={st.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#0f172a", border: `1px solid ${dept.color}33`, borderRadius: 10, padding: "7px 12px", flex: "1 1 280px" }}>
+          <div key={st.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "var(--surface-sunken)", border: `1px solid ${dept.color}33`, borderRadius: 10, padding: "7px 12px", flex: "1 1 280px" }}>
             <div style={{ width: 20, height: 20, borderRadius: 5, background: dept.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 9, fontWeight: 800, flexShrink: 0 }}>
               {i + 1}
             </div>
-            <span style={{ color: "#94a3b8", fontSize: 12, lineHeight: 1.5 }}>{st.text}</span>
+            <span style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>{st.text}</span>
           </div>
         ))}
       </div>
