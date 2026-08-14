@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
-  }
-  return NextResponse.json({ ok: true, user: { id: user.id, role: user.role } });
+  return NextResponse.json({
+    ok: true,
+    env: {
+      databaseUrl: Boolean(process.env.DATABASE_URL),
+      authSecret: Boolean(process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= 32),
+    },
+  });
 }

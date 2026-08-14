@@ -2,23 +2,22 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-function createPrisma() {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-}
-
-function getPrisma() {
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = createPrisma();
+function databaseUrl() {
+  let url = process.env.DATABASE_URL?.trim() ?? "";
+  if (
+    (url.startsWith('"') && url.endsWith('"')) ||
+    (url.startsWith("'") && url.endsWith("'"))
+  ) {
+    url = url.slice(1, -1);
   }
-  return globalForPrisma.prisma;
+  return url;
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop, _receiver) {
-    const client = getPrisma();
-    const value = Reflect.get(client, prop, client);
-    return typeof value === "function" ? value.bind(client) : value;
-  },
-});
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    datasources: databaseUrl() ? { db: { url: databaseUrl() } } : undefined,
+  });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

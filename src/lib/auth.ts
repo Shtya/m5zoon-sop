@@ -1,7 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@prisma/client";
-import { prisma } from "./prisma";
 import type { Permission } from "./permissions";
 import { can } from "./permissions";
 import { jsonError } from "./http";
@@ -87,6 +86,7 @@ export async function getAuthUser(): Promise<SessionUser | null> {
     const { payload } = await jwtVerify(token, secret());
     const id = String(payload.id || "");
     if (!id) return null;
+    const { prisma } = await import("./prisma");
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user || !user.active) return null;
     return sanitizeUser(user);
