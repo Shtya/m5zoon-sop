@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
 import { CircleAlert } from "lucide-react";
 import { RoleBadge } from "@/components/ui";
+import { Logo } from "@/components/Logo";
 
 const DEMO = [
   { email: "omar@makhzon.com", password: "admin123", role: "super_admin" },
@@ -63,14 +64,8 @@ export function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void })
           style={{ background: "radial-gradient(circle, #2C6FB0 0%, transparent 70%)" }}
         />
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-primary text-lg font-bold text-white">
-            م
-          </div>
-          <div>
-            <p className="text-lg font-semibold tracking-tight text-white">Makhzon</p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-sidebar-muted">Knowledge ops</p>
-          </div>
+        <div className="relative z-10">
+          <Logo size="lg" onDark />
         </div>
 
         <div className="relative z-10 max-w-md">
@@ -97,11 +92,8 @@ export function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void })
       </aside>
 
       <div className="relative flex flex-col bg-paper">
-        <div className="flex items-center gap-2 px-6 py-5 lg:invisible sm:px-10">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-primary text-sm font-bold text-white">
-            م
-          </div>
-          <span className="text-sm font-semibold">Makhzon</span>
+        <div className="flex items-center px-6 py-5 lg:invisible sm:px-10">
+          <Logo size="sm" onDark={false} />
         </div>
 
         <div className="flex flex-1 items-center justify-center px-6 py-8 sm:px-10">
@@ -169,7 +161,7 @@ export function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void })
         </div>
 
         <p className="px-6 pb-6 text-center font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted sm:px-10">
-          Secure workspace · Makhzon
+          Secure workspace · مخزوني
         </p>
       </div>
     </div>

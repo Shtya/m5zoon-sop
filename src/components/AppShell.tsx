@@ -15,6 +15,7 @@ import { Popover } from "@/components/ui/popover";
 import { Toast, type ToastMessage } from "@/components/ui/toast";
 import { CountryBar } from "@/components/CountryBar";
 import { LoginPage } from "@/components/LoginPage";
+import { Logo } from "@/components/Logo";
 import { SopCard } from "@/components/sop/SopCard";
 import { ChecklistModal, QuickModal } from "@/components/sop/QuickModal";
 import { FullSopView } from "@/components/sop/FullSopView";
@@ -371,8 +372,9 @@ export function AppShell() {
 
   if (user === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-paper text-muted-foreground">
-        جاري التحقق من الجلسة...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper">
+        <Logo size="md" onDark={false} />
+        <p className="text-sm text-muted-foreground">جاري التحقق من الجلسة...</p>
       </div>
     );
   }
@@ -446,12 +448,8 @@ export function AppShell() {
 
   const nav = (
     <>
-      <div className="mb-5 flex items-center gap-2.5 border-b border-white/[0.08] pb-5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary text-sm font-bold text-white">م</div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14.5px] font-semibold leading-tight text-white">Makhzon</p>
-          <p className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-sidebar-muted">Knowledge ops</p>
-        </div>
+      <div className="mb-5 border-b border-white/[0.08] pb-5">
+        <Logo size="md" onDark />
       </div>
       <nav className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto" aria-label="Main">
         {SECTIONS.filter((s) => s.show).map((s) => {
@@ -527,6 +525,7 @@ export function AppShell() {
           >
             <Menu className="h-4 w-4" />
           </button>
+          <Logo size="sm" onDark={false} className="lg:hidden" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-semibold text-foreground">
               {section === "sops" && "مكتبة الإجراءات"}

@@ -9,7 +9,7 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "Makhzon — نظام الإجراءات والمشاكل",
+  title: "مخزوني — نظام الإجراءات والمشاكل",
   description: "Operational knowledge base for SOP and daily issues",
 };
 
