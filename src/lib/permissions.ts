@@ -17,7 +17,10 @@ export type Permission =
   | "issues.edit"
   | "issues.delete"
   | "analytics.view"
-  | "backup.manage";
+  | "backup.manage"
+  | "training.view"
+  | "training.manage"
+  | "training.progress";
 
 const ROLE_PERMS: Record<Role, Permission[]> = {
   super_admin: [
@@ -38,6 +41,9 @@ const ROLE_PERMS: Record<Role, Permission[]> = {
     "issues.delete",
     "analytics.view",
     "backup.manage",
+    "training.view",
+    "training.manage",
+    "training.progress",
   ],
   admin: [
     "sop.view",
@@ -52,6 +58,9 @@ const ROLE_PERMS: Record<Role, Permission[]> = {
     "issues.edit",
     "issues.delete",
     "analytics.view",
+    "training.view",
+    "training.manage",
+    "training.progress",
   ],
   team_leader: [
     "sop.view",
@@ -62,6 +71,8 @@ const ROLE_PERMS: Record<Role, Permission[]> = {
     "issues.create",
     "issues.edit",
     "analytics.view",
+    "training.view",
+    "training.progress",
   ],
   employee: [
     "sop.view",
@@ -69,6 +80,8 @@ const ROLE_PERMS: Record<Role, Permission[]> = {
     "sop.comment",
     "issues.view",
     "issues.create",
+    "training.view",
+    "training.progress",
   ],
 };
 

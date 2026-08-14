@@ -34,8 +34,8 @@ Mentioned as planned / later / not implemented in the old UI:
 1. **Real AI search (Claude/Anthropic)**  
    Old UI called Anthropic from the browser. That must not return. A future server-side assistant can rank SOPs from a query in dialect Arabic.
 
-2. **Training / onboarding paths**  
-   `SEED_PATHS` existed (`مسار Call Center جديد`) with `sopIds` and `enrolledUsers`, but there was no screen. Keep the architecture free for a `Path` model later.
+2. **Training / onboarding paths** ✅ Implemented  
+   Module `مسار التدريب`: ordered steps (`read_sop` / `watch_video` / `read_content` / `task`), enrollment, gated progress, admin create/delete. See `/api/training` and `TrainingPage`.
 
 3. **External order-system integration**  
    Confirm → Get → Process → Call Customer is business context, not an existing API. Do not invent a connector until a real order system exists.

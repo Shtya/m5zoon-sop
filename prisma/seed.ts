@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.trainingStepProgress.deleteMany();
+  await prisma.trainingEnrollment.deleteMany();
+  await prisma.trainingPathStep.deleteMany();
+  await prisma.trainingPath.deleteMany();
   await prisma.sopView.deleteMany();
   await prisma.sopFeedback.deleteMany();
   await prisma.sopAcknowledgment.deleteMany();
@@ -273,6 +277,67 @@ async function main() {
         create: [{ countryId: "ae" }, { countryId: "sa" }, { countryId: "jo" }, { countryId: "om" }],
       },
       affectedUsers: { create: [{ userId: "u2" }, { userId: "u4" }] },
+    },
+  });
+
+  await prisma.trainingPath.create({
+    data: {
+      id: "path-cc-new",
+      title: "مسار Call Center — الموظف الجديد",
+      department: "call-center",
+      description: "أول أيامك في الكول سنتر: اقرأ الإجراءات، شاهد الفيديوهات، ونفّذ المهام قبل ما تبدأ الشفت لوحدك.",
+      active: true,
+      createdById: "u1",
+      steps: {
+        create: [
+          {
+            sortOrder: 0,
+            type: "read_content",
+            title: "مرحباً بك في الفريق",
+            description: "اقرأ سياسة العمل والتواصل مع العملاء",
+            content:
+              "1) التزم بمواعيد الشفت.\n2) استخدم لغة مهذبة مع العميل.\n3) سجّل كل مكالمة على النظام.\n4) لو المشكلة أكبر من صلاحياتك، صعّد لـ Team Leader.",
+            required: true,
+          },
+          {
+            sortOrder: 1,
+            type: "read_sop",
+            title: "اقرأ SOP: التعامل مع عنوان ناقص",
+            description: "فهم خطوات تحديث العنوان قبل ما ترد على أول طلب",
+            sopId: "sop-001",
+            required: true,
+          },
+          {
+            sortOrder: 2,
+            type: "watch_video",
+            title: "شاهد فيديو التواصل مع العميل",
+            description: "فيديو توضيحي لطريقة طلب العنوان بأدب",
+            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            required: true,
+          },
+          {
+            sortOrder: 3,
+            type: "task",
+            title: "نفّذ مهمة تدريبية",
+            description: "تمرين عملي قبل الشفت الحقيقي",
+            content:
+              "افتح محاكاة طلب بحالة Waiting for Address، اطلب العنوان من العميل (تمرين)، وحدّث الحالة إلى Confirmed. بعد ما تخلص اضغط «تم».",
+            required: true,
+          },
+          {
+            sortOrder: 4,
+            type: "read_content",
+            title: "قواعد التصعيد",
+            description: "متى تصعّد ومتى تحل بنفسك",
+            content:
+              "صعّد فورًا إذا: العميل غاضب جدًا، العنوان غير مفهوم بعد محاولتين، أو طلب استرداد مبلغ. غير ذلك حاول الحل ضمن صلاحياتك أولًا.",
+            required: true,
+          },
+        ],
+      },
+      enrollments: {
+        create: [{ userId: "u4", status: "in_progress", startedAt: new Date("2025-01-18") }],
+      },
     },
   });
 

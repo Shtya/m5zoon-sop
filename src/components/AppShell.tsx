@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BarChart3, Bell, BookOpen, ChevronDown, Download, FileCode, FileSpreadsheet, Flame, List, LogOut, Menu, RefreshCw, Search, ShoppingCart, TriangleAlert, Users, X } from "lucide-react";
+import { BarChart3, Bell, BookOpen, ChevronDown, Download, FileCode, FileSpreadsheet, Flame, GraduationCap, List, LogOut, Menu, RefreshCw, Search, ShoppingCart, TriangleAlert, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { DEPARTMENTS, ISSUE_STATUS, ORDER_STATUSES, RELATED_ACTIONS, SMART_SYNONYMS, getCountry, getRole, isExpired, isExpiring } from "@/lib/constants";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/cn";
 import { backupToXlsx, downloadBlob, type BackupPayload } from "@/lib/excel";
 import type { SessionUser } from "@/lib/auth";
-import type { PublicIssue, PublicSop } from "@/lib/types";
+import type { PublicIssue, PublicSop, PublicTrainingPath } from "@/lib/types";
 import { Av, EmptyState, PageHeader, RoleBadge } from "@/components/ui";
 import { Dropdown } from "@/components/ui/dropdown";
 import { Popover } from "@/components/ui/popover";
@@ -24,15 +24,17 @@ import { IssueCard, IssueDetail, IssueForm } from "@/components/issues/Issues";
 import { UsersPage } from "@/components/users/UsersPage";
 import { AnalyticsPage } from "@/components/analytics/AnalyticsPage";
 import { OrderSim, SmartSearch } from "@/components/ops/OpsPages";
+import { TrainingPage } from "@/components/training/TrainingPage";
 import { categoryOptions, departmentOptions, DeptIcon } from "@/components/icons";
 
-type Section = "sops" | "issues" | "analytics" | "order" | "ai" | "users";
+type Section = "sops" | "issues" | "analytics" | "order" | "ai" | "users" | "training";
 
 export function AppShell() {
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
   const [users, setUsers] = useState<SessionUser[]>([]);
   const [sops, setSops] = useState<PublicSop[]>([]);
   const [issues, setIssues] = useState<PublicIssue[]>([]);
+  const [trainingPaths, setTrainingPaths] = useState<PublicTrainingPath[]>([]);
   const [analytics, setAnalytics] = useState<Parameters<typeof AnalyticsPage>[0]["data"]>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [busy, setBusy] = useState(false);
@@ -107,6 +109,11 @@ export function AppShell() {
     const data = await api<{ issues: PublicIssue[] }>(`/api/issues?${params.toString()}`);
     setIssues(data.issues);
   }, [issueSearch, issueDept, issueCat, issueSev, issueStat, issueRecurring, country]);
+
+  const loadTraining = useCallback(async () => {
+    const data = await api<{ paths: PublicTrainingPath[] }>("/api/training");
+    setTrainingPaths(data.paths);
+  }, []);
 
   useEffect(() => {
     api<{ user: SessionUser }>("/api/auth/me")
@@ -189,6 +196,21 @@ export function AppShell() {
       cancelled = true;
     };
   }, [user, section, issueView, country]);
+
+  useEffect(() => {
+    if (!user || !can(user.role, "training.view")) return;
+    let cancelled = false;
+    api<{ paths: PublicTrainingPath[] }>("/api/training")
+      .then((data) => {
+        if (!cancelled) setTrainingPaths(data.paths);
+      })
+      .catch((e) => {
+        if (!cancelled) fail(e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   async function openSop(sop: PublicSop) {
     try {
@@ -391,6 +413,7 @@ export function AppShell() {
 
   const SECTIONS = [
     { id: "sops" as const, label: "SOPs", icon: BookOpen, show: true, count: sops.length },
+    { id: "training" as const, label: "مسار التدريب", icon: GraduationCap, show: can(user.role, "training.view"), count: trainingPaths.filter((p) => p.enrollment && p.enrollment.status !== "completed").length },
     { id: "issues" as const, label: "المشاكل اليومية", icon: Flame, show: true, count: openIssues },
     { id: "order" as const, label: "محاكاة الطلب", icon: ShoppingCart, show: true, count: 0 },
     { id: "ai" as const, label: "بحث ذكي", icon: Search, show: true, count: 0 },
@@ -529,6 +552,7 @@ export function AppShell() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-semibold text-foreground">
               {section === "sops" && "مكتبة الإجراءات"}
+              {section === "training" && "مسار التدريب"}
               {section === "issues" && "المشاكل اليومية"}
               {section === "order" && "محاكاة الطلب"}
               {section === "ai" && "البحث الذكي"}
@@ -840,6 +864,73 @@ export function AppShell() {
           {section === "ai" && (
             <SmartSearch onSearch={smartSearch} results={smartResults} reason={smartReason} loading={smartLoading} onOpen={(s) => { setSection("sops"); openSop(s); }} onQuick={setQuickSop} />
           )}
+          {section === "training" && (
+            <TrainingPage
+              paths={trainingPaths}
+              sops={sops}
+              currentUser={user}
+              busy={busy}
+              onRefresh={loadTraining}
+              onEnroll={async (pathId) => {
+                setBusy(true);
+                try {
+                  const fresh = await api<PublicTrainingPath>(`/api/training/${pathId}/enroll`, { method: "POST", body: "{}" });
+                  setTrainingPaths((prev) => prev.map((p) => (p.id === pathId ? fresh : p)));
+                  notify("ok", "تم بدء المسار");
+                } catch (e) {
+                  fail(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              onCompleteStep={async (pathId, stepId) => {
+                setBusy(true);
+                try {
+                  const fresh = await api<PublicTrainingPath>(`/api/training/${pathId}/steps/${stepId}/complete`, { method: "POST" });
+                  setTrainingPaths((prev) => prev.map((p) => (p.id === pathId ? fresh : p)));
+                  notify("ok", fresh.enrollment?.status === "completed" ? "أحسنت! أنهيت المسار" : "تم تسجيل إكمال الخطوة");
+                } catch (e) {
+                  fail(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              onCreate={async (form) => {
+                setBusy(true);
+                try {
+                  await api("/api/training", { method: "POST", body: JSON.stringify(form) });
+                  await loadTraining();
+                  notify("ok", "تم إنشاء مسار التدريب");
+                } catch (e) {
+                  fail(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              onDelete={async (pathId) => {
+                setBusy(true);
+                try {
+                  await api(`/api/training/${pathId}`, { method: "DELETE" });
+                  await loadTraining();
+                  notify("ok", "تم حذف المسار");
+                } catch (e) {
+                  fail(e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              onOpenSop={(sopId) => {
+                const sop = sops.find((s) => s.id === sopId);
+                if (sop) {
+                  setSection("sops");
+                  openSop(sop);
+                } else {
+                  notify("error", "الإجراء غير موجود في القائمة الحالية");
+                }
+              }}
+            />
+          )}
+
           {section === "analytics" && <AnalyticsPage data={analytics} />}
           {section === "users" && (
             <UsersPage

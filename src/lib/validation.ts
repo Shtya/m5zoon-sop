@@ -78,6 +78,29 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const trainingStepSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(["read_sop", "watch_video", "read_content", "task"]),
+  title: z.string().trim().min(1, "يرجى كتابة عنوان الخطوة"),
+  description: z.string().optional().default(""),
+  content: z.string().optional().default(""),
+  videoUrl: z.string().optional().default(""),
+  sopId: z.string().nullable().optional(),
+  required: z.boolean().default(true),
+});
+
+export const trainingPathBodySchema = z.object({
+  title: z.string().trim().min(1, "يرجى كتابة عنوان المسار"),
+  department: z.string().min(1),
+  description: z.string().optional().default(""),
+  active: z.boolean().optional().default(true),
+  steps: z.array(trainingStepSchema).min(1, "أضف خطوة واحدة على الأقل"),
+});
+
+export const trainingEnrollSchema = z.object({
+  userId: z.string().min(1).optional(),
+});
+
 export function cleanStrings(list: string[]) {
   return list.map((s) => s.trim()).filter(Boolean);
 }

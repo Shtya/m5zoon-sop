@@ -100,3 +100,45 @@ export type PublicIssue = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TrainingStepType = "read_sop" | "watch_video" | "read_content" | "task";
+
+export type PublicTrainingStep = {
+  id: string;
+  sortOrder: number;
+  type: TrainingStepType;
+  title: string;
+  description: string;
+  content: string;
+  videoUrl: string;
+  sopId: string | null;
+  sopTitle?: string | null;
+  required: boolean;
+  completed: boolean;
+  completedAt: string | null;
+  locked: boolean;
+};
+
+export type PublicTrainingPath = {
+  id: string;
+  title: string;
+  department: string;
+  description: string;
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  steps: PublicTrainingStep[];
+  enrollment: {
+    id: string;
+    status: "not_started" | "in_progress" | "completed";
+    startedAt: string | null;
+    completedAt: string | null;
+  } | null;
+  progress: {
+    done: number;
+    total: number;
+    percent: number;
+  };
+  enrolledCount: number;
+};

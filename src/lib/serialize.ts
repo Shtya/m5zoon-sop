@@ -168,3 +168,72 @@ export function bumpVersion(current: string) {
   if (Number.isNaN(n)) return "1.1";
   return (n + 0.1).toFixed(1);
 }
+
+export const trainingPathInclude = {
+  steps: { orderBy: { sortOrder: "asc" as const } },
+  enrollments: {
+    include: { progress: true },
+  },
+} satisfies Prisma.TrainingPathInclude;
+
+type PathPayload = Prisma.TrainingPathGetPayload<{ include: typeof trainingPathInclude }>;
+
+export function serializeTrainingPath(
+  path: PathPayload,
+  opts?: { currentUserId?: string; sopTitles?: Record<string, string> },
+): import("./types").PublicTrainingPath {
+  const mine = opts?.currentUserId
+    ? path.enrollments.find((e) => e.userId === opts.currentUserId) ?? null
+    : null;
+  const doneIds = new Set(mine?.progress.map((p) => p.stepId) ?? []);
+  let lockedGate = false;
+  const steps = path.steps.map((step) => {
+    const completed = doneIds.has(step.id);
+    const locked = lockedGate;
+    if (step.required && !completed) lockedGate = true;
+    return {
+      id: step.id,
+      sortOrder: step.sortOrder,
+      type: step.type,
+      title: step.title,
+      description: step.description,
+      content: step.content,
+      videoUrl: step.videoUrl,
+      sopId: step.sopId,
+      sopTitle: step.sopId ? opts?.sopTitles?.[step.sopId] ?? null : null,
+      required: step.required,
+      completed,
+      completedAt: mine?.progress.find((p) => p.stepId === step.id)
+        ? ymd(mine.progress.find((p) => p.stepId === step.id)!.completedAt)
+        : null,
+      locked: locked && !completed,
+    };
+  });
+  const total = steps.length;
+  const done = steps.filter((s) => s.completed).length;
+  return {
+    id: path.id,
+    title: path.title,
+    department: path.department,
+    description: path.description,
+    active: path.active,
+    createdBy: path.createdById,
+    createdAt: ymd(path.createdAt) ?? "",
+    updatedAt: ymd(path.updatedAt) ?? "",
+    steps,
+    enrollment: mine
+      ? {
+          id: mine.id,
+          status: mine.status,
+          startedAt: ymd(mine.startedAt),
+          completedAt: ymd(mine.completedAt),
+        }
+      : null,
+    progress: {
+      done,
+      total,
+      percent: total ? Math.round((done / total) * 100) : 0,
+    },
+    enrolledCount: path.enrollments.length,
+  };
+}

@@ -55,6 +55,8 @@ model User {
   updatedIssues  Issue[]  @relation("IssueUpdatedBy")
   issueComments  IssueComment[]
   affectedIssues IssueAffectedUser[]
+  createdPaths   TrainingPath[] @relation("PathCreatedBy")
+  pathEnrollments TrainingEnrollment[]
 
   @@map("users")
 }
@@ -259,4 +261,88 @@ model IssueAffectedUser {
 
   @@id([issueId, userId])
   @@map("issue_affected_users")
+}
+
+enum TrainingStepType {
+  read_sop
+  watch_video
+  read_content
+  task
+}
+
+enum TrainingEnrollmentStatus {
+  not_started
+  in_progress
+  completed
+}
+
+model TrainingPath {
+  id          String   @id @default(cuid())
+  title       String
+  department  String
+  description String   @default("")
+  active      Boolean  @default(true)
+  createdById String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy   User     @relation("PathCreatedBy", fields: [createdById], references: [id])
+  steps       TrainingPathStep[]
+  enrollments TrainingEnrollment[]
+
+  @@index([department])
+  @@map("training_paths")
+}
+
+model TrainingPathStep {
+  id          String           @id @default(cuid())
+  pathId      String           @map("path_id")
+  sortOrder   Int              @default(0) @map("sort_order")
+  type        TrainingStepType
+  title       String
+  description String           @default("")
+  content     String           @default("")
+  videoUrl    String           @default("") @map("video_url")
+  sopId       String?          @map("sop_id")
+  required    Boolean          @default(true)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  path        TrainingPath     @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  progress    TrainingStepProgress[]
+
+  @@index([pathId])
+  @@map("training_path_steps")
+}
+
+model TrainingEnrollment {
+  id          String                    @id @default(cuid())
+  pathId      String                    @map("path_id")
+  userId      String                    @map("user_id")
+  status      TrainingEnrollmentStatus  @default(not_started)
+  startedAt   DateTime?                 @map("started_at")
+  completedAt DateTime?                 @map("completed_at")
+  createdAt   DateTime                  @default(now()) @map("created_at")
+  updatedAt   DateTime                  @updatedAt @map("updated_at")
+
+  path        TrainingPath              @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress    TrainingStepProgress[]
+
+  @@unique([pathId, userId])
+  @@index([userId])
+  @@map("training_enrollments")
+}
+
+model TrainingStepProgress {
+  id           String             @id @default(cuid())
+  enrollmentId String             @map("enrollment_id")
+  stepId       String             @map("step_id")
+  completedAt  DateTime           @default(now()) @map("completed_at")
+
+  enrollment   TrainingEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  step         TrainingPathStep   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, stepId])
+  @@index([stepId])
+  @@map("training_step_progress")
 }
