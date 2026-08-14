@@ -1,0 +1,269 @@
+"use client";
+
+import { useState } from "react";
+import { DEPARTMENTS, ORDER_STATUSES, PROBLEM_TYPES, RELATED_ACTIONS } from "@/lib/constants";
+import type { PublicSop } from "@/lib/types";
+import { FL, T } from "@/components/ui";
+import { CountryPicker } from "@/components/CountryBar";
+
+function suid() {
+  return `s-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+const empty = () => ({
+  department: "call-center",
+  title: "",
+  objective: "",
+  steps: [{ id: suid(), text: "", imageUrl: "" }],
+  decisionRules: [{ condition: "", action: "" }],
+  escalationContacts: [{ problemType: "", name: "", position: "", phone: "", whatsapp: "" }],
+  commonMistakes: [""],
+  videoLink: "",
+  keywords: [] as string[],
+  relatedStatuses: [] as string[],
+  relatedActions: [] as string[],
+  attachments: [] as { type: "google_doc" | "word" | "other"; label: string; url: string }[],
+  reviewDate: new Date(Date.now() + 180 * 864e5).toISOString().slice(0, 10),
+  countries: [] as string[],
+  changeReason: "",
+});
+
+export function SopForm({
+  initial,
+  onSave,
+  onCancel,
+  busy,
+}: {
+  initial: PublicSop | null;
+  onSave: (form: ReturnType<typeof empty>) => void;
+  onCancel: () => void;
+  busy?: boolean;
+}) {
+  const [form, setForm] = useState(() =>
+    initial
+      ? {
+          department: initial.department,
+          title: initial.title,
+          objective: initial.objective,
+          steps: initial.steps.map((s) => ({ id: s.id, text: s.text, imageUrl: s.imageUrl || "" })),
+          decisionRules: [...initial.decisionRules],
+          escalationContacts: initial.escalationContacts.map((c) => ({ ...c, whatsapp: c.whatsapp || "" })),
+          commonMistakes: [...initial.commonMistakes],
+          videoLink: initial.videoLink || "",
+          keywords: [...initial.keywords],
+          relatedStatuses: [...initial.relatedStatuses],
+          relatedActions: [...initial.relatedActions],
+          attachments: [...initial.attachments],
+          reviewDate: initial.reviewDate || new Date(Date.now() + 180 * 864e5).toISOString().slice(0, 10),
+          countries: [...(initial.countries || [])],
+          changeReason: "",
+        }
+      : empty(),
+  );
+  const [kw, setKw] = useState("");
+  const upd = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const I = T.input;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+        <h2 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: 0 }}>{initial ? "✏️ تعديل SOP" : "➕ إنشاء SOP جديد"}</h2>
+        <button onClick={onCancel} style={T.ghost}>
+          إلغاء
+        </button>
+      </div>
+      <div className="makhzon-form-grid">
+        <div>
+          <FL label="القسم">
+            <select value={form.department} onChange={(e) => upd("department", e.target.value)} style={{ ...I, cursor: "pointer" }}>
+              {DEPARTMENTS.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.icon} {d.label}
+                </option>
+              ))}
+            </select>
+          </FL>
+          <FL label="عنوان الـ SOP">
+            <input value={form.title} onChange={(e) => upd("title", e.target.value)} placeholder="مثال: التعامل مع عنوان ناقص" style={I} />
+          </FL>
+          <FL label="الهدف">
+            <textarea value={form.objective} onChange={(e) => upd("objective", e.target.value)} rows={3} style={{ ...I, resize: "vertical" }} />
+          </FL>
+          <FL label="تاريخ المراجعة">
+            <input type="date" value={form.reviewDate} onChange={(e) => upd("reviewDate", e.target.value)} style={I} />
+          </FL>
+          {initial && (
+            <FL label="سبب التعديل">
+              <input value={form.changeReason} onChange={(e) => upd("changeReason", e.target.value)} placeholder="مثال: تحديث وقت التصعيد" style={I} />
+            </FL>
+          )}
+          <FL label="خطوات التنفيذ">
+            {form.steps.map((st, i) => (
+              <div key={st.id} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#3b82f6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
+                  <input value={st.text} onChange={(e) => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} style={I} />
+                  <button onClick={() => upd("steps", form.steps.filter((_, j) => j !== i))} style={{ background: "#1a0a0a", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                    ✕
+                  </button>
+                </div>
+                <input value={st.imageUrl} onChange={(e) => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, imageUrl: e.target.value } : x)))} placeholder="رابط صورة الخطوة (اختياري)" style={{ ...I, fontSize: 12 }} />
+              </div>
+            ))}
+            <button onClick={() => upd("steps", [...form.steps, { id: suid(), text: "", imageUrl: "" }])} style={{ ...T.ghost, width: "100%", color: "#93c5fd" }}>
+              + خطوة
+            </button>
+          </FL>
+          <FL label="قواعد القرار">
+            {form.decisionRules.map((r, i) => (
+              <div key={i} className="makhzon-rule" style={{ marginBottom: 8 }}>
+                <input value={r.condition} onChange={(e) => upd("decisionRules", form.decisionRules.map((x, j) => (j === i ? { ...x, condition: e.target.value } : x)))} placeholder="لو..." style={I} />
+                <input value={r.action} onChange={(e) => upd("decisionRules", form.decisionRules.map((x, j) => (j === i ? { ...x, action: e.target.value } : x)))} placeholder="نعمل..." style={I} />
+                <button onClick={() => upd("decisionRules", form.decisionRules.filter((_, j) => j !== i))} style={{ background: "#1a0a0a", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer", fontFamily: "inherit" }}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button onClick={() => upd("decisionRules", [...form.decisionRules, { condition: "", action: "" }])} style={{ ...T.ghost, width: "100%", color: "#a78bfa" }}>
+              + قاعدة
+            </button>
+          </FL>
+        </div>
+        <div>
+          <FL label="📞 جهات التصعيد">
+            {form.escalationContacts.map((c, i) => (
+              <div key={i} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                  <select value={c.problemType} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, problemType: e.target.value } : x)))} style={{ ...I, width: "auto", padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>
+                    <option value="">— نوع المشكلة —</option>
+                    {PROBLEM_TYPES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  <button onClick={() => upd("escalationContacts", form.escalationContacts.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16 }}>
+                    🗑
+                  </button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                  <input value={c.name} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} placeholder="اسم الشخص" style={I} />
+                  <input value={c.phone} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)))} placeholder="05xxxxxxxx" style={I} />
+                </div>
+                <input value={c.position} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, position: e.target.value } : x)))} placeholder="المسمى الوظيفي" style={{ ...I, marginBottom: 8 }} />
+                <input value={c.whatsapp || ""} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, whatsapp: e.target.value } : x)))} placeholder="واتساب (اختياري، مع كود الدولة)" style={I} />
+              </div>
+            ))}
+            <button onClick={() => upd("escalationContacts", [...form.escalationContacts, { problemType: "", name: "", position: "", phone: "", whatsapp: "" }])} style={{ ...T.ghost, width: "100%", color: "#fbbf24" }}>
+              + جهة تصعيد
+            </button>
+          </FL>
+          <FL label="📎 الملفات المرفقة">
+            {form.attachments.map((a, i) => (
+              <div key={i} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 12, marginBottom: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                  <select value={a.type} onChange={(e) => upd("attachments", form.attachments.map((x, j) => (j === i ? { ...x, type: e.target.value as typeof a.type } : x)))} style={{ ...I, padding: "6px 10px", fontSize: 12, cursor: "pointer" }}>
+                    <option value="google_doc">📄 Google Doc</option>
+                    <option value="word">📝 Word Doc</option>
+                    <option value="other">📎 ملف آخر</option>
+                  </select>
+                  <button onClick={() => upd("attachments", form.attachments.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}>
+                    🗑
+                  </button>
+                </div>
+                <input value={a.label} onChange={(e) => upd("attachments", form.attachments.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="اسم الملف" style={{ ...I, marginBottom: 8 }} />
+                <input value={a.url} onChange={(e) => upd("attachments", form.attachments.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="https://docs.google.com/..." style={I} />
+              </div>
+            ))}
+            <button onClick={() => upd("attachments", [...form.attachments, { type: "google_doc", label: "", url: "" }])} style={{ ...T.ghost, width: "100%", color: "#4285f4" }}>
+              + إضافة ملف
+            </button>
+          </FL>
+          <FL label="الأخطاء الشائعة">
+            {form.commonMistakes.map((m, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <input value={m} onChange={(e) => upd("commonMistakes", form.commonMistakes.map((x, j) => (j === i ? e.target.value : x)))} style={I} />
+                <button onClick={() => upd("commonMistakes", form.commonMistakes.filter((_, j) => j !== i))} style={{ background: "#1a0a0a", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer" }}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button onClick={() => upd("commonMistakes", [...form.commonMistakes, ""])} style={{ ...T.ghost, width: "100%", color: "#fca5a5" }}>
+              + خطأ
+            </button>
+          </FL>
+          <FL label="رابط فيديو">
+            <input value={form.videoLink} onChange={(e) => upd("videoLink", e.target.value)} placeholder="https://youtube.com/..." style={I} />
+          </FL>
+          <FL label="كلمات مفتاحية">
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input
+                value={kw}
+                onChange={(e) => setKw(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && kw.trim()) {
+                    e.preventDefault();
+                    upd("keywords", [...form.keywords, kw.trim()]);
+                    setKw("");
+                  }
+                }}
+                placeholder="اكتب ثم Enter"
+                style={I}
+              />
+              <button onClick={() => { if (kw.trim()) { upd("keywords", [...form.keywords, kw.trim()]); setKw(""); } }} style={{ ...T.btn(), padding: "0 14px" }}>
+                +
+              </button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {form.keywords.map((k, i) => (
+                <span key={i} onClick={() => upd("keywords", form.keywords.filter((_, j) => j !== i))} style={{ background: "#1e3a5f", color: "#93c5fd", borderRadius: 6, padding: "3px 10px", fontSize: 12, cursor: "pointer" }}>
+                  {k} ✕
+                </span>
+              ))}
+            </div>
+          </FL>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <FL label="الحالات">
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 160, overflowY: "auto" }}>
+                {ORDER_STATUSES.map((s) => (
+                  <label key={s} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", color: "#94a3b8", fontSize: 12 }}>
+                    <input type="checkbox" checked={form.relatedStatuses.includes(s)} onChange={(e) => upd("relatedStatuses", e.target.checked ? [...form.relatedStatuses, s] : form.relatedStatuses.filter((x) => x !== s))} />
+                    {s}
+                  </label>
+                ))}
+              </div>
+            </FL>
+            <FL label="الإجراءات">
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 160, overflowY: "auto" }}>
+                {RELATED_ACTIONS.map((a) => (
+                  <label key={a} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", color: "#94a3b8", fontSize: 12 }}>
+                    <input type="checkbox" checked={form.relatedActions.includes(a)} onChange={(e) => upd("relatedActions", e.target.checked ? [...form.relatedActions, a] : form.relatedActions.filter((x) => x !== a))} />
+                    {a}
+                  </label>
+                ))}
+              </div>
+            </FL>
+          </div>
+          <FL label="🌍 الدول المعنية">
+            <CountryPicker value={form.countries} onChange={(v) => upd("countries", v)} />
+          </FL>
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+        <button onClick={onCancel} style={T.ghost}>
+          إلغاء
+        </button>
+        <button
+          disabled={busy}
+          onClick={() => {
+            if (!form.title.trim()) return;
+            onSave(form);
+          }}
+          style={{ ...T.btn(), padding: "12px 32px", fontSize: 15, opacity: busy ? 0.6 : 1 }}
+        >
+          {busy ? "جاري الحفظ..." : "💾 حفظ الـ SOP"}
+        </button>
+      </div>
+    </div>
+  );
+}

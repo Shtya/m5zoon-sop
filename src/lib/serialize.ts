@@ -1,0 +1,165 @@
+import type { Prisma } from "@prisma/client";
+import type { PublicIssue, PublicSop, SopContentSnapshot } from "./types";
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function ymd(d: Date | string | null | undefined) {
+  if (!d) return null;
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+export function snapshotFromSop(sop: {
+  department: string;
+  title: string;
+  objective: string;
+  steps: unknown;
+  decisionRules: unknown;
+  escalationContacts: unknown;
+  commonMistakes: unknown;
+  videoLink: string;
+  attachments: unknown;
+  keywords: string[];
+  relatedStatuses: string[];
+  relatedActions: string[];
+  reviewDate: Date | null;
+  countries?: { countryId: string }[];
+}): SopContentSnapshot {
+  return {
+    department: sop.department,
+    title: sop.title,
+    objective: sop.objective,
+    steps: asArray(sop.steps),
+    decisionRules: asArray(sop.decisionRules),
+    escalationContacts: asArray(sop.escalationContacts),
+    commonMistakes: asArray(sop.commonMistakes),
+    videoLink: sop.videoLink,
+    attachments: asArray(sop.attachments),
+    keywords: sop.keywords,
+    relatedStatuses: sop.relatedStatuses,
+    relatedActions: sop.relatedActions,
+    countries: sop.countries?.map((c) => c.countryId) ?? [],
+    reviewDate: ymd(sop.reviewDate),
+  };
+}
+
+export const sopInclude = {
+  countries: true,
+  comments: { orderBy: { createdAt: "asc" as const } },
+  history: { orderBy: { createdAt: "asc" as const } },
+  acknowledgments: true,
+  feedback: true,
+} satisfies Prisma.SopInclude;
+
+export function serializeSop(
+  sop: Prisma.SopGetPayload<{ include: typeof sopInclude }>,
+  currentUserId?: string,
+): PublicSop {
+  const currentAcks = sop.acknowledgments
+    .filter((a) => a.version === sop.version)
+    .map((a) => a.userId);
+  const mine = sop.feedback.find((f) => f.userId === currentUserId);
+  return {
+    id: sop.id,
+    department: sop.department,
+    title: sop.title,
+    objective: sop.objective,
+    steps: asArray(sop.steps),
+    decisionRules: asArray(sop.decisionRules),
+    escalationContacts: asArray(sop.escalationContacts),
+    commonMistakes: asArray(sop.commonMistakes),
+    videoLink: sop.videoLink,
+    keywords: sop.keywords,
+    relatedStatuses: sop.relatedStatuses,
+    relatedActions: sop.relatedActions,
+    attachments: asArray(sop.attachments),
+    countries: sop.countries.map((c) => c.countryId),
+    views: sop.views,
+    helpfulCount: sop.helpfulCount,
+    notHelpfulCount: sop.notHelpfulCount,
+    reviewDate: ymd(sop.reviewDate),
+    version: sop.version,
+    createdBy: sop.createdById,
+    updatedBy: sop.updatedById,
+    createdAt: ymd(sop.createdAt) ?? "",
+    updatedAt: ymd(sop.updatedAt) ?? "",
+    history: sop.history.map((h) => ({
+      version: h.version,
+      date: ymd(h.createdAt) ?? "",
+      by: h.userId,
+      note: h.changeReason,
+      previousContent: h.previousContent,
+      currentContent: h.currentContent,
+    })),
+    comments: sop.comments.map((c) => ({
+      id: c.id,
+      userId: c.userId,
+      text: c.text,
+      date: ymd(c.createdAt) ?? "",
+    })),
+    acknowledgments: currentAcks,
+    myFeedback: mine ? (mine.helpful ? "helpful" : "notHelpful") : null,
+  };
+}
+
+export const issueInclude = {
+  countries: true,
+  comments: { orderBy: { createdAt: "asc" as const } },
+  affectedUsers: true,
+} satisfies Prisma.IssueInclude;
+
+export function serializeIssue(
+  issue: Prisma.IssueGetPayload<{ include: typeof issueInclude }>,
+): PublicIssue {
+  return {
+    id: issue.id,
+    title: issue.title,
+    department: issue.department,
+    category: issue.category,
+    severity: issue.severity,
+    status: issue.status,
+    date: ymd(issue.issueDate) ?? "",
+    reportedBy: issue.reportedById,
+    affectedUsers: issue.affectedUsers.map((a) => a.userId),
+    description: issue.description,
+    rootCauses: asArray(issue.rootCauses),
+    solution: issue.solution,
+    preventionSteps: asArray(issue.preventionSteps),
+    videoLink: issue.videoLink,
+    isRecurring: issue.isRecurring,
+    recurrenceCount: issue.recurrenceCount,
+    countries: issue.countries.map((c) => c.countryId),
+    comments: issue.comments.map((c) => ({
+      id: c.id,
+      userId: c.userId,
+      text: c.text,
+      date: ymd(c.createdAt) ?? "",
+    })),
+    createdBy: issue.createdById,
+    updatedBy: issue.updatedById,
+    createdAt: ymd(issue.createdAt) ?? "",
+    updatedAt: ymd(issue.updatedAt) ?? "",
+  };
+}
+
+/** Empty country list means the record applies to all countries. */
+export function countryWhere(country?: string | null): Prisma.SopWhereInput {
+  if (!country || country === "all") return {};
+  return {
+    OR: [{ countries: { none: {} } }, { countries: { some: { countryId: country } } }],
+  };
+}
+
+export function issueCountryWhere(country?: string | null): Prisma.IssueWhereInput {
+  if (!country || country === "all") return {};
+  return {
+    OR: [{ countries: { none: {} } }, { countries: { some: { countryId: country } } }],
+  };
+}
+
+export function bumpVersion(current: string) {
+  const n = Number.parseFloat(current);
+  if (Number.isNaN(n)) return "1.1";
+  return (n + 0.1).toFixed(1);
+}

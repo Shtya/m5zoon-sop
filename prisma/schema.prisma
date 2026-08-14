@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  super_admin
+  admin
+  team_leader
+  employee
+}
+
+enum IssueSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum IssueStatus {
+  open
+  progress
+  resolved
+  recurring
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  role           Role     @default(employee)
+  department     String
+  position       String?
+  phone          String?
+  avatar         String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  createdSops    Sop[]    @relation("SopCreatedBy")
+  updatedSops    Sop[]    @relation("SopUpdatedBy")
+  sopHistory     SopHistory[]
+  sopAcks        SopAcknowledgment[]
+  sopFeedback    SopFeedback[]
+  sopComments    SopComment[]
+  sopViews       SopView[]
+  reportedIssues Issue[]  @relation("IssueReportedBy")
+  createdIssues  Issue[]  @relation("IssueCreatedBy")
+  updatedIssues  Issue[]  @relation("IssueUpdatedBy")
+  issueComments  IssueComment[]
+  affectedIssues IssueAffectedUser[]
+
+  @@map("users")
+}
+
+model Country {
+  id     String @id
+  name   String
+  flag   String
+  color  String
+  sops   SopCountry[]
+  issues IssueCountry[]
+
+  @@map("countries")
+}
+
+model Sop {
+  id                  String   @id @default(cuid())
+  department          String
+  title               String
+  objective           String   @default("")
+  steps               Json     @default("[]")
+  decisionRules       Json     @default("[]") @map("decision_rules")
+  escalationContacts  Json     @default("[]") @map("escalation_contacts")
+  commonMistakes      Json     @default("[]") @map("common_mistakes")
+  videoLink           String   @default("") @map("video_link")
+  attachments         Json     @default("[]")
+  keywords            String[] @default([])
+  relatedStatuses     String[] @default([]) @map("related_statuses")
+  relatedActions      String[] @default([]) @map("related_actions")
+  reviewDate          DateTime? @db.Date @map("review_date")
+  version             String   @default("1.0")
+  views               Int      @default(0)
+  helpfulCount        Int      @default(0) @map("helpful_count")
+  notHelpfulCount     Int      @default(0) @map("not_helpful_count")
+  createdById         String   @map("created_by")
+  updatedById         String?  @map("updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  createdBy           User     @relation("SopCreatedBy", fields: [createdById], references: [id])
+  updatedBy           User?    @relation("SopUpdatedBy", fields: [updatedById], references: [id])
+  countries           SopCountry[]
+  history             SopHistory[]
+  acknowledgments     SopAcknowledgment[]
+  feedback            SopFeedback[]
+  comments            SopComment[]
+  viewLogs            SopView[]
+
+  @@index([department])
+  @@index([title])
+  @@map("sops")
+}
+
+model SopCountry {
+  sopId     String
+  countryId String
+  sop       Sop     @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@id([sopId, countryId])
+  @@map("sop_countries")
+}
+
+model SopHistory {
+  id               String   @id @default(cuid())
+  sopId            String   @map("sop_id")
+  version          String
+  userId           String   @map("user_id")
+  changeReason     String   @map("change_reason")
+  previousContent  Json?    @map("previous_content")
+  currentContent   Json?    @map("current_content")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  sop              Sop      @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@index([sopId])
+  @@map("sop_history")
+}
+
+model SopAcknowledgment {
+  id        String   @id @default(cuid())
+  sopId     String   @map("sop_id")
+  userId    String   @map("user_id")
+  version   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sop       Sop      @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([sopId, userId, version])
+  @@index([sopId])
+  @@map("sop_acknowledgments")
+}
+
+model SopFeedback {
+  id        String   @id @default(cuid())
+  sopId     String   @map("sop_id")
+  userId    String   @map("user_id")
+  helpful   Boolean
+  createdAt DateTime @updatedAt @map("created_at")
+
+  sop       Sop      @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([sopId, userId])
+  @@map("sop_feedback")
+}
+
+model SopComment {
+  id        String   @id @default(cuid())
+  sopId     String   @map("sop_id")
+  userId    String   @map("user_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sop       Sop      @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([sopId])
+  @@map("sop_comments")
+}
+
+model SopView {
+  id        String   @id @default(cuid())
+  sopId     String   @map("sop_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sop       Sop      @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([sopId])
+  @@index([userId])
+  @@map("sop_views")
+}
+
+model Issue {
+  id               String        @id @default(cuid())
+  title            String
+  department       String
+  category         String
+  severity         IssueSeverity @default(medium)
+  status           IssueStatus   @default(open)
+  issueDate        DateTime      @db.Date @map("issue_date")
+  description      String        @default("")
+  rootCauses       Json          @default("[]") @map("root_causes")
+  solution         String        @default("")
+  preventionSteps  Json          @default("[]") @map("prevention_steps")
+  videoLink        String        @default("") @map("video_link")
+  isRecurring      Boolean       @default(false) @map("is_recurring")
+  recurrenceCount  Int           @default(1) @map("recurrence_count")
+  reportedById     String        @map("reported_by")
+  createdById      String        @map("created_by")
+  updatedById      String?       @map("updated_by")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  reportedBy       User          @relation("IssueReportedBy", fields: [reportedById], references: [id])
+  createdBy        User          @relation("IssueCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?         @relation("IssueUpdatedBy", fields: [updatedById], references: [id])
+  countries        IssueCountry[]
+  comments         IssueComment[]
+  affectedUsers    IssueAffectedUser[]
+
+  @@index([department])
+  @@index([category])
+  @@index([status])
+  @@index([severity])
+  @@map("issues")
+}
+
+model IssueCountry {
+  issueId   String
+  countryId String
+  issue     Issue   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, countryId])
+  @@map("issue_countries")
+}
+
+model IssueComment {
+  id        String   @id @default(cuid())
+  issueId   String   @map("issue_id")
+  userId    String   @map("user_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([issueId])
+  @@map("issue_comments")
+}
+
+model IssueAffectedUser {
+  issueId String
+  userId  String
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, userId])
+  @@map("issue_affected_users")
+}
