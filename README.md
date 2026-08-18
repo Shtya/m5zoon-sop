@@ -32,16 +32,11 @@ npm run dev
 
 Open http://localhost:3000
 
-## Demo accounts
+## Login
 
 | Email | Password | Role |
 | --- | --- | --- |
 | noor@gmail.com | admin123 | Super Admin |
-| sara@makhzon.com | sara123 | Admin |
-| khaled@makhzon.com | khaled123 | Team Leader |
-| nada@makhzon.com | nada123 | Employee |
-
-Youssef (`youssef@makhzon.com`) is inactive and cannot log in.
 
 ## Application backup
 

@@ -4,15 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
 import { CircleAlert } from "lucide-react";
-import { RoleBadge } from "@/components/ui";
 import { Logo } from "@/components/Logo";
-
-const DEMO = [
-  { email: "omar@makhzon.com", password: "admin123", role: "super_admin" },
-  { email: "sara@makhzon.com", password: "sara123", role: "admin" },
-  { email: "khaled@makhzon.com", password: "khaled123", role: "team_leader" },
-  { email: "nada@makhzon.com", password: "nada123", role: "employee" },
-];
 
 const FEATURES = [
   { value: "SOP", label: "مكتبة إجراءات" },
@@ -138,24 +130,6 @@ export function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void })
               <button type="button" onClick={go} disabled={loading} className="btn-primary mt-1 h-11 w-full text-[15px]">
                 {loading ? "جاري..." : "دخول"}
               </button>
-            </div>
-
-            <div className="mt-5 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-              <div className="mb-2 text-[11px] font-semibold text-muted-foreground">حسابات تجريبية:</div>
-              {DEMO.map((u) => (
-                <button
-                  key={u.email}
-                  type="button"
-                  onClick={() => {
-                    setEmail(u.email);
-                    setPass(u.password);
-                  }}
-                  className="mb-1.5 flex w-full items-center justify-between rounded-md border border-border bg-surface-sunken px-3 py-1.5 last:mb-0 hover:bg-surface-hover"
-                >
-                  <span className="text-[11px] text-muted-foreground">{u.email}</span>
-                  <RoleBadge role={u.role} />
-                </button>
-              ))}
             </div>
           </div>
         </div>
