@@ -13,6 +13,7 @@ const rule = z.object({
 
 const contact = z.object({
   problemType: z.string(),
+  userId: z.string().optional().nullable(),
   name: z.string(),
   position: z.string(),
   phone: z.string(),
@@ -65,12 +66,19 @@ export const issueBodySchema = z.object({
 export const userBodySchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().email(),
-  password: z.string().min(4).optional(),
+  password: z.preprocess(
+    (v) => (typeof v === "string" && !v.trim() ? undefined : v),
+    z.string().min(4).optional(),
+  ),
   role: z.enum(["super_admin", "admin", "team_leader", "employee"]).default("employee"),
   department: z.string().min(1),
   position: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   active: z.boolean().optional().default(true),
+  extraPermissions: z.array(z.string()).optional().default([]),
+  deniedPermissions: z.array(z.string()).optional().default([]),
+  allowedCountries: z.array(z.string()).optional().default([]),
+  allowedDepartments: z.array(z.string()).optional().default([]),
 });
 
 export const loginSchema = z.object({
@@ -120,9 +128,25 @@ export function cleanRules(rules: { condition: string; action: string }[]) {
 }
 
 export function cleanContacts(
-  contacts: { problemType: string; name: string; position: string; phone: string; whatsapp?: string }[],
+  contacts: {
+    problemType: string;
+    userId?: string | null;
+    name: string;
+    position: string;
+    phone: string;
+    whatsapp?: string;
+  }[],
 ) {
-  return contacts.filter((c) => c.name.trim() || c.phone.trim());
+  return contacts
+    .filter((c) => c.name.trim() || c.phone.trim() || c.userId)
+    .map((c) => ({
+      problemType: c.problemType,
+      userId: c.userId || undefined,
+      name: c.name.trim(),
+      position: c.position.trim(),
+      phone: c.phone.trim(),
+      whatsapp: c.whatsapp?.trim() || undefined,
+    }));
 }
 
 export function cleanAttachments(

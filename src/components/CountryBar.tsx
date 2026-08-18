@@ -4,7 +4,17 @@ import { Check, Globe } from "lucide-react";
 import { COUNTRIES } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 
-export function CountryBar({ active, onChange }: { active: string; onChange: (id: string) => void }) {
+export function CountryBar({
+  active,
+  onChange,
+  allowedIds,
+}: {
+  active: string;
+  onChange: (id: string) => void;
+  allowedIds?: string[] | null;
+}) {
+  const countries = allowedIds?.length ? COUNTRIES.filter((c) => allowedIds.includes(c.id)) : COUNTRIES;
+  const showAll = countries.length !== 1;
   return (
     <div className="rounded-2xl border border-border bg-surface/95 px-4 shadow-lg sm:px-6">
       <div className="flex h-11 items-center gap-1.5 overflow-x-auto">
@@ -12,19 +22,21 @@ export function CountryBar({ active, onChange }: { active: string; onChange: (id
           <Globe className="h-3.5 w-3.5" strokeWidth={1.8} />
           الدولة:
         </span>
-        <button
-          type="button"
-          onClick={() => onChange("all")}
-          className={cn(
-            "rounded-md px-3.5 py-1.5 text-[13px] transition-colors",
-            active === "all"
-              ? "bg-primary-soft font-semibold text-primary"
-              : "font-medium text-muted-foreground hover:bg-surface-sunken hover:text-foreground",
-          )}
-        >
-          الكل
-        </button>
-        {COUNTRIES.map((c) => (
+        {showAll && (
+          <button
+            type="button"
+            onClick={() => onChange("all")}
+            className={cn(
+              "rounded-md px-3.5 py-1.5 text-[13px] transition-colors",
+              active === "all"
+                ? "bg-primary-soft font-semibold text-primary"
+                : "font-medium text-muted-foreground hover:bg-surface-sunken hover:text-foreground",
+            )}
+          >
+            الكل
+          </button>
+        )}
+        {countries.map((c) => (
           <button
             key={c.id}
             type="button"
@@ -55,14 +67,17 @@ export function CountryBar({ active, onChange }: { active: string; onChange: (id
 export function CountryPicker({
   value,
   onChange,
+  allowedIds,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
+  allowedIds?: string[] | null;
 }) {
+  const countries = allowedIds?.length ? COUNTRIES.filter((c) => allowedIds.includes(c.id)) : COUNTRIES;
   return (
     <div>
       <div className="flex flex-wrap gap-2">
-        {COUNTRIES.map((c) => {
+        {countries.map((c) => {
           const sel = value.includes(c.id);
           return (
             <button
@@ -90,7 +105,9 @@ export function CountryPicker({
           );
         })}
       </div>
-      <div className="mt-1.5 text-[11px] text-text-muted">اتركها فاضية = تظهر في كل الدول</div>
+      <div className="mt-1.5 text-[11px] text-text-muted">
+        {allowedIds?.length ? "يمكنك اختيار الدول المسموح بها لك فقط." : "اتركها فاضية = تظهر في كل الدول"}
+      </div>
     </div>
   );
 }

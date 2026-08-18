@@ -2,6 +2,7 @@ export type SopStep = { id: string; text: string; imageUrl?: string };
 export type DecisionRule = { condition: string; action: string };
 export type EscalationContact = {
   problemType: string;
+  userId?: string;
   name: string;
   position: string;
   phone: string;
@@ -36,6 +37,10 @@ export type PublicUser = {
   phone: string | null;
   avatar: string | null;
   active: boolean;
+  extraPermissions?: string[];
+  deniedPermissions?: string[];
+  allowedCountries?: string[];
+  allowedDepartments?: string[];
   createdAt: string;
 };
 

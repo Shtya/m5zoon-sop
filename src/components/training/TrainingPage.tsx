@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { getDept } from "@/lib/constants";
-import { can } from "@/lib/permissions";
+import { can, viewDepartmentIds, writeDepartmentIds } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/auth";
 import type { PublicSop, PublicTrainingPath, TrainingStepType } from "@/lib/types";
 import { DeptBadge, EmptyState, FL, PageHeader } from "@/components/ui";
@@ -94,7 +94,11 @@ export function TrainingPage({
   onDelete: (pathId: string) => Promise<void>;
   onOpenSop: (sopId: string) => void;
 }) {
-  const manage = can(currentUser.role, "training.manage");
+  const manage = can(currentUser, "training.manage");
+  const viewDepts = viewDepartmentIds(currentUser);
+  const writeDepts = writeDepartmentIds(currentUser);
+  const viewDeptOptions = departmentOptions().filter((o) => !viewDepts || viewDepts.includes(o.value));
+  const writeDeptOptions = departmentOptions().filter((o) => !writeDepts || writeDepts.includes(o.value));
   const [view, setView] = useState<"list" | "detail" | "create">("list");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [deptFilter, setDeptFilter] = useState("all");
@@ -141,7 +145,7 @@ export function TrainingPage({
             <Dropdown
               value={form.department}
               onChange={(v) => setForm((f) => ({ ...f, department: v }))}
-              options={departmentOptions()}
+              options={writeDeptOptions.length ? writeDeptOptions : departmentOptions()}
             />
           </FL>
           <FL label="الوصف">
@@ -468,7 +472,7 @@ export function TrainingPage({
           value={deptFilter}
           onChange={setDeptFilter}
           size="sm"
-          options={[{ value: "all", label: "كل الأقسام" }, ...departmentOptions()]}
+          options={[{ value: "all", label: "كل الأقسام" }, ...viewDeptOptions]}
         />
       </div>
       {filtered.length === 0 ? (

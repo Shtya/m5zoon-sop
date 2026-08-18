@@ -11,7 +11,7 @@ import {
   getRole,
   getSev,
 } from "@/lib/constants";
-import { can } from "@/lib/permissions";
+import { can, viewCountryIds, writeDepartmentIds } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/auth";
 import type { PublicIssue } from "@/lib/types";
 import { Av, Badge, CountryPills, FL, T } from "@/components/ui";
@@ -105,7 +105,7 @@ export function IssueDetail({
           <IconText icon={ArrowLeft}>رجوع</IconText>
         </button>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {can(currentUser.role, "issues.edit") && (
+          {can(currentUser, "issues.edit") && (
             <Dropdown
               value={issue.status}
               onChange={(v) => onUpdateStatus(issue.id, v)}
@@ -114,12 +114,12 @@ export function IssueDetail({
               options={ISSUE_STATUS.map((s) => ({ value: s.id, label: s.label }))}
             />
           )}
-          {can(currentUser.role, "issues.edit") && (
+          {can(currentUser, "issues.edit") && (
             <button onClick={() => onEdit(issue)} style={T.btn("#8b5cf6")}>
               <IconText icon={Pencil}>تعديل</IconText>
             </button>
           )}
-          {can(currentUser.role, "issues.delete") && (
+          {can(currentUser, "issues.delete") && (
             <button onClick={() => onDelete(issue.id)} style={T.btn("#ef4444")}>
               <IconText icon={Trash2}>حذف</IconText>
             </button>
@@ -322,7 +322,10 @@ export function IssueForm({
           <FL label="عنوان المشكلة"><input value={form.title} onChange={(e) => upd("title", e.target.value)} style={I} /></FL>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <FL label="القسم">
-              <Dropdown value={form.department} onChange={(v) => upd("department", v)} options={departmentOptions()} />
+              <Dropdown value={form.department} onChange={(v) => upd("department", v)} options={departmentOptions().filter((o) => {
+                const allowed = writeDepartmentIds(currentUser);
+                return !allowed || allowed.includes(o.value);
+              })} />
             </FL>
             <FL label="الفئة">
               <Dropdown value={form.category} onChange={(v) => upd("category", v)} options={categoryOptions()} />
@@ -382,7 +385,7 @@ export function IssueForm({
             </label>
             {form.isRecurring && <input type="number" min={2} value={form.recurrenceCount} onChange={(e) => upd("recurrenceCount", parseInt(e.target.value, 10) || 2)} style={{ ...I, width: 120, marginTop: 8 }} />}
           </div>
-          <FL label="الدول المعنية"><CountryPicker value={form.countries} onChange={(v) => upd("countries", v)} /></FL>
+          <FL label="الدول المعنية"><CountryPicker value={form.countries} onChange={(v) => upd("countries", v)} allowedIds={viewCountryIds(currentUser)} /></FL>
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>

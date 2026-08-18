@@ -36,8 +36,8 @@ async function main() {
   await prisma.user.create({
     data: {
       id: "u1",
-      name: "Omar Hassan",
-      email: "omar@makhzon.com",
+      name: "Noor Salah",
+      email: "noor@gmail.com",
       passwordHash: await hash("admin123"),
       role: Role.super_admin,
       department: "operations",
@@ -128,7 +128,7 @@ async function main() {
       ],
       escalationContacts: [
         { problemType: "عنوان غلط أو ناقص", name: "Sara Ahmed", position: "Call Center Manager", phone: "0509876543" },
-        { problemType: "شكوى عميل", name: "Omar Hassan", position: "Operations Director", phone: "0501234567" },
+        { problemType: "شكوى عميل", name: "Noor Salah", position: "Operations Director", phone: "0501234567" },
       ],
       commonMistakes: ["تحديث العنوان دون تغيير الحالة", "الانتظار أكثر من ساعة قبل التواصل"],
       videoLink: "",

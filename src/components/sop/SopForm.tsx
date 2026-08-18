@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, FileType, Paperclip, Pencil, Plus, Save, Trash2, X } from "lucide-react";
-import { ORDER_STATUSES, PROBLEM_TYPES, RELATED_ACTIONS } from "@/lib/constants";
+import { FileText, FileType, ImageUp, Paperclip, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { ORDER_STATUSES, PROBLEM_TYPES, RELATED_ACTIONS, getDept } from "@/lib/constants";
+import { viewCountryIds, writeDepartmentIds } from "@/lib/permissions";
 import type { PublicSop } from "@/lib/types";
+import type { SessionUser } from "@/lib/auth";
 import { FL, T } from "@/components/ui";
 import { CountryPicker } from "@/components/CountryBar";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -13,13 +15,15 @@ function suid() {
   return `s-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-const empty = () => ({
-  department: "call-center",
+const emptyContact = () => ({ problemType: "", userId: "", name: "", position: "", phone: "", whatsapp: "" });
+
+const empty = (department = "call-center") => ({
+  department,
   title: "",
   objective: "",
   steps: [{ id: suid(), text: "", imageUrl: "" }],
   decisionRules: [{ condition: "", action: "" }],
-  escalationContacts: [{ problemType: "", name: "", position: "", phone: "", whatsapp: "" }],
+  escalationContacts: [emptyContact()],
   commonMistakes: [""],
   videoLink: "",
   keywords: [] as string[],
@@ -36,12 +40,18 @@ export function SopForm({
   onSave,
   onCancel,
   busy,
+  users,
+  currentUser,
 }: {
   initial: PublicSop | null;
   onSave: (form: ReturnType<typeof empty>) => void;
   onCancel: () => void;
   busy?: boolean;
+  users: SessionUser[];
+  currentUser: SessionUser;
 }) {
+  const writeDepts = writeDepartmentIds(currentUser);
+  const countryScope = viewCountryIds(currentUser);
   const [form, setForm] = useState(() =>
     initial
       ? {
@@ -50,7 +60,14 @@ export function SopForm({
           objective: initial.objective,
           steps: initial.steps.map((s) => ({ id: s.id, text: s.text, imageUrl: s.imageUrl || "" })),
           decisionRules: [...initial.decisionRules],
-          escalationContacts: initial.escalationContacts.map((c) => ({ ...c, whatsapp: c.whatsapp || "" })),
+          escalationContacts: initial.escalationContacts.map((c) => ({
+            problemType: c.problemType,
+            userId: c.userId || "",
+            name: c.name,
+            position: c.position,
+            phone: c.phone,
+            whatsapp: c.whatsapp || "",
+          })),
           commonMistakes: [...initial.commonMistakes],
           videoLink: initial.videoLink || "",
           keywords: [...initial.keywords],
@@ -61,11 +78,55 @@ export function SopForm({
           countries: [...(initial.countries || [])],
           changeReason: "",
         }
-      : empty(),
+      : empty(writeDepts?.[0] || currentUser.department || "call-center"),
   );
   const [kw, setKw] = useState("");
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState("");
   const upd = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
   const I = T.input;
+  const activeUsers = users.filter((u) => u.active);
+  const deptOptions = departmentOptions().filter((o) => !writeDepts || writeDepts.includes(o.value));
+
+  function pickEscalationUser(index: number, userId: string) {
+    const u = users.find((x) => x.id === userId);
+    upd(
+      "escalationContacts",
+      form.escalationContacts.map((x, j) =>
+        j === index
+          ? {
+              ...x,
+              userId,
+              name: u?.name || "",
+              position: u?.position || "",
+              phone: u?.phone || "",
+              whatsapp: u?.phone || x.whatsapp || "",
+            }
+          : x,
+      ),
+    );
+  }
+
+  async function uploadStepImage(index: number, file: File | undefined) {
+    if (!file) return;
+    setUploadError("");
+    setUploading(form.steps[index].id);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", credentials: "include", body });
+      const json = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error || "فشل رفع الصورة");
+      upd(
+        "steps",
+        form.steps.map((x, j) => (j === index ? { ...x, imageUrl: json.url as string } : x)),
+      );
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "فشل رفع الصورة");
+    } finally {
+      setUploading(null);
+    }
+  }
 
   return (
     <div>
@@ -83,7 +144,7 @@ export function SopForm({
             <Dropdown
               value={form.department}
               onChange={(v) => upd("department", v)}
-              options={departmentOptions()}
+              options={deptOptions.length ? deptOptions : departmentOptions()}
             />
           </FL>
           <FL label="عنوان الـ SOP">
@@ -110,9 +171,40 @@ export function SopForm({
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <input value={st.imageUrl} onChange={(e) => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, imageUrl: e.target.value } : x)))} placeholder="رابط صورة الخطوة (اختياري)" style={{ ...I, fontSize: 12 }} />
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-1.5 text-[12px] text-muted-foreground">
+                    <ImageUp className="h-3.5 w-3.5" />
+                    {uploading === st.id ? "جاري الرفع..." : "رفع صورة"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      disabled={uploading === st.id}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        void uploadStepImage(i, file);
+                      }}
+                    />
+                  </label>
+                  {st.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, imageUrl: "" } : x)))}
+                      className="text-[11px] text-danger"
+                    >
+                      إزالة الصورة
+                    </button>
+                  )}
+                </div>
+                <input value={st.imageUrl} onChange={(e) => upd("steps", form.steps.map((x, j) => (j === i ? { ...x, imageUrl: e.target.value } : x)))} placeholder="أو الصق رابط الصورة (اختياري)" style={{ ...I, fontSize: 12 }} />
+                {st.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={st.imageUrl} alt="" className="mt-2 max-h-40 rounded-md border border-border object-contain" />
+                )}
               </div>
             ))}
+            {uploadError && <div className="mb-2 text-xs text-danger">{uploadError}</div>}
             <button onClick={() => upd("steps", [...form.steps, { id: suid(), text: "", imageUrl: "" }])} style={{ ...T.ghost, width: "100%", color: "var(--primary)" }}>
               + خطوة
             </button>
@@ -136,7 +228,7 @@ export function SopForm({
           <FL label="جهات التصعيد">
             {form.escalationContacts.map((c, i) => (
               <div key={i} className="mb-2.5 rounded-[var(--radius-lg)] border border-border bg-surface-sunken p-3.5">
-                <div className="mb-2.5 flex justify-between">
+                <div className="mb-2.5 flex justify-between gap-2">
                   <Dropdown
                     value={c.problemType}
                     onChange={(v) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, problemType: v } : x)))}
@@ -149,6 +241,25 @@ export function SopForm({
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
+                <div className="mb-2">
+                  <Dropdown
+                    value={c.userId}
+                    onChange={(v) => pickEscalationUser(i, v)}
+                    placeholder="— اختيار موظف من النظام —"
+                    size="sm"
+                    searchable
+                    options={[
+                      { value: "", label: "— إدخال يدوي —" },
+                      ...activeUsers.map((u) => ({
+                        value: u.id,
+                        label: `${u.name}${u.position ? ` · ${u.position}` : ""} · ${getDept(u.department).label}`,
+                      })),
+                    ]}
+                  />
+                </div>
+                {c.userId && (
+                  <p className="mb-2 text-[11px] text-text-muted">البيانات مربوطة بحساب المستخدم وتتحدث تلقائياً إذا تغيّر الاسم أو الرقم.</p>
+                )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                   <input value={c.name} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} placeholder="اسم الشخص" style={I} />
                   <input value={c.phone} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)))} placeholder="05xxxxxxxx" style={I} />
@@ -157,7 +268,7 @@ export function SopForm({
                 <input value={c.whatsapp || ""} onChange={(e) => upd("escalationContacts", form.escalationContacts.map((x, j) => (j === i ? { ...x, whatsapp: e.target.value } : x)))} placeholder="واتساب (اختياري، مع كود الدولة)" style={I} />
               </div>
             ))}
-            <button onClick={() => upd("escalationContacts", [...form.escalationContacts, { problemType: "", name: "", position: "", phone: "", whatsapp: "" }])} style={{ ...T.ghost, width: "100%", color: "#fbbf24" }}>
+            <button onClick={() => upd("escalationContacts", [...form.escalationContacts, emptyContact()])} style={{ ...T.ghost, width: "100%", color: "#fbbf24" }}>
               + جهة تصعيد
             </button>
           </FL>
@@ -253,7 +364,7 @@ export function SopForm({
             </FL>
           </div>
           <FL label="الدول المعنية">
-            <CountryPicker value={form.countries} onChange={(v) => upd("countries", v)} />
+            <CountryPicker value={form.countries} onChange={(v) => upd("countries", v)} allowedIds={countryScope} />
           </FL>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BarChart3, Bell, BookOpen, ChevronDown, Download, FileCode, FileSpreadsheet, Flame, GraduationCap, List, LogOut, Menu, RefreshCw, Search, ShoppingCart, TriangleAlert, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { DEPARTMENTS, ISSUE_STATUS, ORDER_STATUSES, RELATED_ACTIONS, SMART_SYNONYMS, getCountry, getRole, isExpired, isExpiring } from "@/lib/constants";
-import { can } from "@/lib/permissions";
+import { can, viewCountryIds, viewDepartmentIds } from "@/lib/permissions";
 import { cn } from "@/lib/cn";
 import { backupToXlsx, downloadBlob, type BackupPayload } from "@/lib/excel";
 import type { SessionUser } from "@/lib/auth";
@@ -123,6 +123,12 @@ export function AppShell() {
 
   useEffect(() => {
     if (!user) return;
+    const allowed = viewCountryIds(user);
+    if (allowed?.length === 1) setCountry(allowed[0]);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     api<SessionUser[]>("/api/users")
       .then((data) => {
@@ -182,7 +188,7 @@ export function AppShell() {
 
   useEffect(() => {
     if (!user || (section !== "analytics" && issueView !== "dashboard")) return;
-    if (!can(user.role, "analytics.view") && section === "analytics") return;
+    if (!can(user, "analytics.view") && section === "analytics") return;
     let cancelled = false;
     const params = country !== "all" ? `?country=${country}` : "";
     api<NonNullable<Parameters<typeof AnalyticsPage>[0]["data"]>>(`/api/analytics${params}`)
@@ -198,7 +204,7 @@ export function AppShell() {
   }, [user, section, issueView, country]);
 
   useEffect(() => {
-    if (!user || !can(user.role, "training.view")) return;
+    if (!user || !can(user, "training.view")) return;
     let cancelled = false;
     api<{ paths: PublicTrainingPath[] }>("/api/training")
       .then((data) => {
@@ -410,16 +416,20 @@ export function AppShell() {
   const liveIssue = activeIssue ? issues.find((i) => i.id === activeIssue.id) || activeIssue : null;
   const attentionCount = expAlerts.length + openIssues;
   const alertCount = expAlerts.length + openIssues + recurIssues;
+  const countryScope = viewCountryIds(user);
+  const deptScope = viewDepartmentIds(user);
+  const visibleDepts = deptScope ? DEPARTMENTS.filter((d) => deptScope.includes(d.id)) : DEPARTMENTS;
 
   const SECTIONS = [
-    { id: "sops" as const, label: "SOPs", icon: BookOpen, show: true, count: sops.length },
-    { id: "training" as const, label: "مسار التدريب", icon: GraduationCap, show: can(user.role, "training.view"), count: trainingPaths.filter((p) => p.enrollment && p.enrollment.status !== "completed").length },
-    { id: "issues" as const, label: "المشاكل اليومية", icon: Flame, show: true, count: openIssues },
-    { id: "order" as const, label: "محاكاة الطلب", icon: ShoppingCart, show: true, count: 0 },
-    { id: "ai" as const, label: "بحث ذكي", icon: Search, show: true, count: 0 },
-    { id: "analytics" as const, label: "التحليلات", icon: BarChart3, show: can(user.role, "analytics.view"), count: 0 },
-    { id: "users" as const, label: "المستخدمين", icon: Users, show: can(user.role, "users.view"), count: 0 },
+    { id: "sops" as const, label: "SOPs", icon: BookOpen, show: can(user, "sop.view"), count: sops.length },
+    { id: "training" as const, label: "مسار التدريب", icon: GraduationCap, show: can(user, "training.view"), count: trainingPaths.filter((p) => p.enrollment && p.enrollment.status !== "completed").length },
+    { id: "issues" as const, label: "المشاكل اليومية", icon: Flame, show: can(user, "issues.view"), count: openIssues },
+    { id: "order" as const, label: "محاكاة الطلب", icon: ShoppingCart, show: can(user, "sop.view"), count: 0 },
+    { id: "ai" as const, label: "بحث ذكي", icon: Search, show: can(user, "sop.view"), count: 0 },
+    { id: "analytics" as const, label: "التحليلات", icon: BarChart3, show: can(user, "analytics.view"), count: 0 },
+    { id: "users" as const, label: "المستخدمين", icon: Users, show: can(user, "users.view"), count: 0 },
   ];
+  const sectionView = SECTIONS.find((s) => s.id === section && s.show)?.id ?? SECTIONS.find((s) => s.show)?.id ?? "sops";
 
   function go(id: Section) {
     setSection(id);
@@ -477,7 +487,7 @@ export function AppShell() {
       <nav className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto" aria-label="Main">
         {SECTIONS.filter((s) => s.show).map((s) => {
           const Icon = s.icon;
-          const active = section === s.id;
+          const active = sectionView === s.id;
           return (
             <button
               key={s.id}
@@ -539,10 +549,10 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="sticky top-0 z-30 bg-paper p-3 lg:ps-0">
-        <header className="flex h-16 shrink-0 items-center gap-3 overflow-visible rounded-2xl bg-surface/95 px-4 shadow-lg sm:px-6">
+        <header className="flex h-[72px] shrink-0 items-center gap-4 overflow-visible rounded-2xl bg-surface/95 px-5 shadow-lg sm:px-7">
           <button
             type="button"
-            className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[var(--radius-md)] border border-border-strong bg-surface text-muted-foreground shadow-xs lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-border-strong bg-surface text-muted-foreground shadow-xs lg:hidden"
             onClick={() => setNavOpen(true)}
             aria-label="فتح القائمة"
           >
@@ -550,17 +560,17 @@ export function AppShell() {
           </button>
           <Logo size="sm" onDark={false} className="lg:hidden" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold text-foreground">
-              {section === "sops" && "مكتبة الإجراءات"}
-              {section === "training" && "مسار التدريب"}
-              {section === "issues" && "المشاكل اليومية"}
-              {section === "order" && "محاكاة الطلب"}
-              {section === "ai" && "البحث الذكي"}
-              {section === "analytics" && "التحليلات"}
-              {section === "users" && "المستخدمين"}
+            <p className="truncate text-[16px] font-bold tracking-tight text-foreground">
+              {sectionView === "sops" && "مكتبة الإجراءات"}
+              {sectionView === "training" && "مسار التدريب"}
+              {sectionView === "issues" && "المشاكل اليومية"}
+              {sectionView === "order" && "محاكاة الطلب"}
+              {sectionView === "ai" && "البحث الذكي"}
+              {sectionView === "analytics" && "التحليلات"}
+              {sectionView === "users" && "المستخدمين"}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-3">
             <Popover
               open={notifOpen}
               onOpenChange={(v) => {
@@ -575,13 +585,13 @@ export function AppShell() {
                     setBackupOpen(false);
                     setNotifOpen((v) => !v);
                   }}
-                  className="relative inline-flex h-[34px] w-[34px] items-center justify-center rounded-[var(--radius-md)] border border-border-strong bg-surface text-muted-foreground shadow-xs"
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-border-strong bg-surface text-muted-foreground shadow-xs transition-colors hover:bg-surface-sunken hover:text-foreground"
                   aria-label="التنبيهات"
                   aria-expanded={notifOpen}
                 >
                   <Bell className="h-4 w-4" />
                   {alertCount > 0 && (
-                    <span className="absolute -end-1 -top-1 min-w-[16px] rounded-full bg-danger px-1 text-center font-mono text-[9px] font-bold leading-[16px] text-white">
+                    <span className="absolute -end-1 -top-1 min-w-[18px] rounded-full bg-danger px-1 text-center font-mono text-[10px] font-bold leading-[18px] text-white">
                       {alertCount}
                     </span>
                   )}
@@ -618,7 +628,7 @@ export function AppShell() {
               )}
               {alertCount === 0 && <p className="px-3 py-4 text-[13px] text-muted-foreground">لا توجد تنبيهات حالياً</p>}
             </Popover>
-            {can(user.role, "backup.manage") && (
+            {can(user, "backup.manage") && (
               <Popover
                 open={backupOpen}
                 onOpenChange={(v) => {
@@ -633,7 +643,7 @@ export function AppShell() {
                       setNotifOpen(false);
                       setBackupOpen((v) => !v);
                     }}
-                    className="btn-outline h-[34px] px-3 text-[12px]"
+                    className="btn-outline h-10 px-3.5 text-[12px]"
                     aria-expanded={backupOpen}
                   >
                     <Download className="h-3.5 w-3.5" /> Backup <ChevronDown className="h-3 w-3 opacity-70" />
@@ -656,10 +666,11 @@ export function AppShell() {
                 </button>
               </Popover>
             )}
-            <div className="hidden items-center gap-2 ps-1 md:flex">
-              <Av initials={user.avatar || user.name.slice(0, 2)} color={getRole(user.role).color} size={32} />
-              <div className="text-[12.5px] leading-tight">
-                <p className="font-medium text-foreground">{user.name}</p>
+            <div className="ms-1 hidden h-8 w-px bg-border md:block" />
+            <div className="hidden items-center gap-2.5 md:flex">
+              <Av initials={user.avatar || user.name.slice(0, 2)} color={getRole(user.role).color} size={36} />
+              <div className="flex min-w-0 flex-col justify-center gap-0.5">
+                <p className="truncate text-[13px] font-semibold leading-none text-foreground">{user.name}</p>
                 <RoleBadge role={user.role} />
               </div>
             </div>
@@ -669,9 +680,11 @@ export function AppShell() {
                 await api("/api/auth/logout", { method: "POST" });
                 setUser(null);
               }}
-              className="inline-flex h-[34px] items-center gap-1 rounded-[var(--radius-md)] border border-danger/25 bg-danger-soft px-2.5 text-[12px] font-semibold text-danger"
+              aria-label="تسجيل الخروج"
+              className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-border-strong bg-surface px-3.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
             >
-              <LogOut className="h-3.5 w-3.5" /> خروج
+              خروج
+              <LogOut className="h-4 w-4 rtl:-scale-x-100" strokeWidth={1.8} />
             </button>
           </div>
         </header>
@@ -680,6 +693,7 @@ export function AppShell() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 lg:ps-0">
         <CountryBar
           active={country}
+          allowedIds={countryScope}
           onChange={(c) => {
             setCountry(c);
             setSopView("list");
@@ -691,14 +705,14 @@ export function AppShell() {
 
         <main id="makhzon-main" className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
 
-          {section === "sops" && (
+          {sectionView === "sops" && (
             <div>
               {sopView === "list" && (
                 <PageHeader
                   title="مكتبة الإجراءات (SOPs)"
                   description={`${visibleSops.length} إجراء${sopReview === "due" ? " تحتاج مراجعة" : ""}${country !== "all" ? ` · ${getCountry(country)?.code} ${getCountry(country)?.name}` : ""}`}
                   actions={
-                    can(user.role, "sop.create") ? (
+                    can(user, "sop.create") ? (
                       <button type="button" className="btn-primary" onClick={() => { setActiveSop(null); setSopView("create"); }}>
                         + إنشاء SOP
                       </button>
@@ -735,7 +749,7 @@ export function AppShell() {
                       >
                         الكل
                       </button>
-                      {DEPARTMENTS.map((d) => (
+                      {visibleDepts.map((d) => (
                         <button
                           key={d.id}
                           type="button"
@@ -789,12 +803,12 @@ export function AppShell() {
                 />
               )}
               {(sopView === "create" || sopView === "edit") && (
-                <SopForm initial={sopView === "edit" ? activeSop : null} onSave={saveSop} onCancel={() => setSopView(activeSop ? "full" : "list")} busy={busy} />
+                <SopForm initial={sopView === "edit" ? activeSop : null} onSave={saveSop} onCancel={() => setSopView(activeSop ? "full" : "list")} busy={busy} users={users} currentUser={user} />
               )}
             </div>
           )}
 
-          {section === "issues" && (
+          {sectionView === "issues" && (
             <div>
               {(issueView === "list" || issueView === "dashboard") && (
                 <PageHeader
@@ -802,7 +816,7 @@ export function AppShell() {
                   description={issueView === "list" ? `${issues.length} مشكلة مسجّلة` : undefined}
                   actions={
                     <div className="flex gap-2">
-                      {issueView === "list" && can(user.role, "analytics.view") && (
+                      {issueView === "list" && can(user, "analytics.view") && (
                         <button type="button" className="btn-outline" onClick={() => setIssueView("dashboard")}>
                           <BarChart3 className="h-3.5 w-3.5" /> التحليلات
                         </button>
@@ -812,7 +826,7 @@ export function AppShell() {
                           <List className="h-3.5 w-3.5" /> القائمة
                         </button>
                       )}
-                      {issueView === "list" && can(user.role, "issues.create") && (
+                      {issueView === "list" && can(user, "issues.create") && (
                         <button type="button" className="btn-primary" style={{ background: "var(--danger)" }} onClick={() => { setActiveIssue(null); setIssueView("create"); }}>
                           + تسجيل مشكلة
                         </button>
@@ -826,7 +840,7 @@ export function AppShell() {
                   <div className="mb-4 rounded-[var(--radius-lg)] border border-border bg-surface p-3.5 shadow-xs">
                     <div className="makhzon-filters">
                       <input value={issueSearch} onChange={(e) => setIssueSearch(e.target.value)} placeholder="ابحث في المشاكل..." className="field-input" />
-                      <Dropdown value={issueDept} onChange={setIssueDept} size="sm" options={[{ value: "all", label: "كل الأقسام" }, ...departmentOptions()]} />
+                      <Dropdown value={issueDept} onChange={setIssueDept} size="sm" options={[{ value: "all", label: "كل الأقسام" }, ...departmentOptions().filter((o) => !deptScope || deptScope.includes(o.value))]} />
                       <Dropdown value={issueCat} onChange={setIssueCat} size="sm" options={[{ value: "all", label: "كل الفئات" }, ...categoryOptions()]} />
                       <Dropdown value={issueSev} onChange={setIssueSev} size="sm" options={[{ value: "all", label: "كل الخطورة" }, { value: "low", label: "منخفضة" }, { value: "medium", label: "متوسطة" }, { value: "high", label: "عالية" }, { value: "critical", label: "حرجة" }]} />
                       <Dropdown value={issueStat} onChange={setIssueStat} size="sm" options={[{ value: "all", label: "كل الحالات" }, ...ISSUE_STATUS.map((s) => ({ value: s.id, label: s.label }))]} />
@@ -860,11 +874,11 @@ export function AppShell() {
             </div>
           )}
 
-          {section === "order" && <OrderSim sops={sops} onQuick={setQuickSop} />}
-          {section === "ai" && (
+          {sectionView === "order" && <OrderSim sops={sops} onQuick={setQuickSop} />}
+          {sectionView === "ai" && (
             <SmartSearch onSearch={smartSearch} results={smartResults} reason={smartReason} loading={smartLoading} onOpen={(s) => { setSection("sops"); openSop(s); }} onQuick={setQuickSop} />
           )}
-          {section === "training" && (
+          {sectionView === "training" && (
             <TrainingPage
               paths={trainingPaths}
               sops={sops}
@@ -931,8 +945,8 @@ export function AppShell() {
             />
           )}
 
-          {section === "analytics" && <AnalyticsPage data={analytics} />}
-          {section === "users" && (
+          {sectionView === "analytics" && <AnalyticsPage data={analytics} />}
+          {sectionView === "users" && (
             <UsersPage
               users={users}
               currentUser={user}
@@ -963,7 +977,7 @@ export function AppShell() {
         </div>
       </div>
 
-      <QuickModal sop={quickSop} onClose={() => setQuickSop(null)} onFull={() => { if (quickSop) { openSop(quickSop); setQuickSop(null); setSection("sops"); } }} onVote={vote} onAck={ack} currentUser={user} busy={busy} />
+      <QuickModal sop={quickSop} onClose={() => setQuickSop(null)} onFull={() => { if (quickSop) { openSop(quickSop); setQuickSop(null); setSection("sops"); } }} onVote={vote} onAck={ack} currentUser={user} users={users} busy={busy} />
       {checkSop && <ChecklistModal sop={checkSop} onClose={() => setCheckSop(null)} />}
     </div>
   );

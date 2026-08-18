@@ -1,15 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
-import { countryWhere, issueCountryWhere } from "@/lib/serialize";
+import { scopedCountryWhere, scopedDepartmentWhere, scopedIssueCountryWhere } from "@/lib/serialize";
 import { COUNTRIES, DEPARTMENTS, ISSUE_CATS, SEVERITY } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const auth = await requirePerm("analytics.view");
   if (!auth.ok) return auth.response;
   const country = new URL(request.url).searchParams.get("country") || "all";
-  const sopWhere = countryWhere(country);
-  const issueWhere = issueCountryWhere(country);
+  const sopWhere = { AND: [scopedCountryWhere(auth.user, country), scopedDepartmentWhere(auth.user)] };
+  const issueWhere = { AND: [scopedIssueCountryWhere(auth.user, country), scopedDepartmentWhere(auth.user)] };
 
   try {
     const [

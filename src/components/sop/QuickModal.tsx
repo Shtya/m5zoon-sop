@@ -17,6 +17,7 @@ export function QuickModal({
   onVote,
   onAck,
   currentUser,
+  users,
   busy,
 }: {
   sop: PublicSop | null;
@@ -25,6 +26,7 @@ export function QuickModal({
   onVote: (id: string, type: "helpful" | "notHelpful") => void;
   onAck: (id: string) => void;
   currentUser: SessionUser;
+  users?: SessionUser[];
   busy?: boolean;
 }) {
   const [prob, setProb] = useState("");
@@ -76,7 +78,7 @@ export function QuickModal({
             ]}
             className={prob ? "mb-2.5" : undefined}
           />
-          {escMatch && <EscCard contact={escMatch} countryId={sop.countries[0]} />}
+          {escMatch && <EscCard contact={escMatch} countryId={sop.countries[0]} users={users} />}
         </div>
       )}
       <div className="flex flex-wrap justify-between gap-2.5">

@@ -82,12 +82,12 @@ export function FullSopView({
           <button onClick={onChecklist} style={T.btn("#6366f1")}>
             <IconText icon={CheckSquare}>Checklist</IconText>
           </button>
-          {canEditSop(currentUser.role, currentUser.department, sop.department) && (
+          {canEditSop(currentUser, sop.department) && (
             <button onClick={() => onEdit(sop)} style={T.btn("#8b5cf6")}>
               <IconText icon={Pencil}>تعديل</IconText>
             </button>
           )}
-          {can(currentUser.role, "sop.delete") && (
+          {can(currentUser, "sop.delete") && (
             <button onClick={() => onDelete(sop.id)} style={T.btn("#ef4444")}>
               <IconText icon={Trash2}>حذف</IconText>
             </button>
@@ -180,10 +180,10 @@ export function FullSopView({
               )}
               {sop.escalationContacts?.length > 0 && (
                 <Sec title="جهات التصعيد — حسب نوع المشكلة" color="#f59e0b" icon={Phone}>
-                  <EscFinder contacts={sop.escalationContacts} countryId={countryId} />
+                  <EscFinder contacts={sop.escalationContacts} countryId={countryId} users={users} />
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {sop.escalationContacts.map((c, i) => (
-                      <EscCard key={i} contact={c} countryId={countryId} />
+                      <EscCard key={i} contact={c} countryId={countryId} users={users} />
                     ))}
                   </div>
                 </Sec>
@@ -284,7 +284,7 @@ export function FullSopView({
         )}
         {tab === "comments" && (
           <div>
-            {can(currentUser.role, "sop.comment") && (
+            {can(currentUser, "sop.comment") && (
               <div style={{ ...T.card, marginBottom: 16 }}>
                 <textarea value={cmnt} onChange={(e) => setCmnt(e.target.value)} rows={3} placeholder="ملاحظة أو سؤال..." style={{ ...T.input, resize: "vertical", marginBottom: 12 }} />
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>

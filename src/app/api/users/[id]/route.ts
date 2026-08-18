@@ -2,10 +2,40 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm, requireUser, sanitizeUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import type { SessionUser } from "@/lib/auth";
+import { COUNTRIES, DEPARTMENTS } from "@/lib/constants";
+import { can, isPermission, isSuperAdmin } from "@/lib/permissions";
 import { userBodySchema } from "@/lib/validation";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+function aclFields(
+  actor: SessionUser,
+  body: {
+    extraPermissions?: string[];
+    deniedPermissions?: string[];
+    allowedCountries?: string[];
+    allowedDepartments?: string[];
+    role: string;
+  },
+) {
+  if (!isSuperAdmin(actor) || body.role === "super_admin") {
+    return {
+      extraPermissions: [] as string[],
+      deniedPermissions: [] as string[],
+      allowedCountries: [] as string[],
+      allowedDepartments: [] as string[],
+    };
+  }
+  const countryIds = new Set(COUNTRIES.map((c) => c.id));
+  const deptIds = new Set(DEPARTMENTS.map((d) => d.id));
+  return {
+    extraPermissions: (body.extraPermissions ?? []).filter(isPermission),
+    deniedPermissions: (body.deniedPermissions ?? []).filter(isPermission),
+    allowedCountries: (body.allowedCountries ?? []).filter((id) => countryIds.has(id as (typeof COUNTRIES)[number]["id"])),
+    allowedDepartments: (body.allowedDepartments ?? []).filter((id) => deptIds.has(id as (typeof DEPARTMENTS)[number]["id"])),
+  };
+}
 
 export async function PUT(request: Request, ctx: Ctx) {
   const auth = await requireUser();
@@ -13,7 +43,7 @@ export async function PUT(request: Request, ctx: Ctx) {
   const { user } = auth;
   const { id } = await ctx.params;
   const isSelf = user.id === id;
-  if (!isSelf && !can(user.role, "users.edit")) {
+  if (!isSelf && !can(user, "users.edit")) {
     return jsonError("غير مصرح بتنفيذ هذه العملية", 403);
   }
 
@@ -21,10 +51,20 @@ export async function PUT(request: Request, ctx: Ctx) {
   const parsed = userBodySchema.safeParse(body);
   if (!parsed.success) return jsonError("بيانات غير صالحة", 400);
 
-  if (!can(user.role, "users.edit")) {
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) return jsonError("المستخدم غير موجود", 404);
+
+  if (!can(user, "users.edit")) {
     parsed.data.role = user.role;
     parsed.data.active = user.active;
     parsed.data.department = user.department;
+  }
+
+  if (parsed.data.role === "super_admin" && !isSuperAdmin(user)) {
+    return jsonError("فقط Super Admin يمكنه تعيين هذا الدور", 403);
+  }
+  if (existing.role === "super_admin" && !isSuperAdmin(user)) {
+    return jsonError("لا يمكن تعديل حساب Super Admin", 403);
   }
 
   try {
@@ -37,6 +77,10 @@ export async function PUT(request: Request, ctx: Ctx) {
       phone: string | null;
       active: boolean;
       passwordHash?: string;
+      extraPermissions?: string[];
+      deniedPermissions?: string[];
+      allowedCountries?: string[];
+      allowedDepartments?: string[];
     } = {
       name: parsed.data.name,
       email: parsed.data.email.toLowerCase(),
@@ -46,6 +90,9 @@ export async function PUT(request: Request, ctx: Ctx) {
       phone: parsed.data.phone || null,
       active: parsed.data.active,
     };
+    if (isSuperAdmin(user) && !isSelf) {
+      Object.assign(data, aclFields(user, parsed.data));
+    }
     if (parsed.data.password) {
       data.passwordHash = await bcrypt.hash(parsed.data.password, 10);
     }

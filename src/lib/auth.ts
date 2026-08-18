@@ -15,6 +15,10 @@ export type SessionUser = {
   phone: string | null;
   avatar: string | null;
   active: boolean;
+  extraPermissions: string[];
+  deniedPermissions: string[];
+  allowedCountries: string[];
+  allowedDepartments: string[];
   createdAt: string;
 };
 
@@ -62,6 +66,10 @@ export function sanitizeUser(user: {
   phone: string | null;
   avatar: string | null;
   active: boolean;
+  extraPermissions?: string[];
+  deniedPermissions?: string[];
+  allowedCountries?: string[];
+  allowedDepartments?: string[];
   createdAt: Date;
 }): SessionUser {
   return {
@@ -74,6 +82,10 @@ export function sanitizeUser(user: {
     phone: user.phone,
     avatar: user.avatar,
     active: user.active,
+    extraPermissions: user.extraPermissions ?? [],
+    deniedPermissions: user.deniedPermissions ?? [],
+    allowedCountries: user.allowedCountries ?? [],
+    allowedDepartments: user.allowedDepartments ?? [],
     createdAt: user.createdAt.toISOString().slice(0, 10),
   };
 }
@@ -107,7 +119,7 @@ export async function requireUser(): Promise<AuthOk | AuthFail> {
 export async function requirePerm(perm: Permission): Promise<AuthOk | AuthFail> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
-  if (!can(auth.user.role, perm)) {
+  if (!can(auth.user, perm)) {
     return { ok: false, response: jsonError("غير مصرح بتنفيذ هذه العملية", 403) };
   }
   return auth;

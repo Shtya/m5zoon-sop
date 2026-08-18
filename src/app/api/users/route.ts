@@ -1,15 +1,48 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
-import { requirePerm, sanitizeUser } from "@/lib/auth";
-import { initials } from "@/lib/constants";
+import { requirePerm, requireUser, sanitizeUser } from "@/lib/auth";
+import { COUNTRIES, DEPARTMENTS, initials } from "@/lib/constants";
+import { isPermission, isSuperAdmin } from "@/lib/permissions";
 import { userBodySchema } from "@/lib/validation";
+import type { SessionUser } from "@/lib/auth";
+
+function aclFields(actor: SessionUser, body: {
+  extraPermissions?: string[];
+  deniedPermissions?: string[];
+  allowedCountries?: string[];
+  allowedDepartments?: string[];
+  role: string;
+}) {
+  if (!isSuperAdmin(actor) || body.role === "super_admin") {
+    return {
+      extraPermissions: [] as string[],
+      deniedPermissions: [] as string[],
+      allowedCountries: [] as string[],
+      allowedDepartments: [] as string[],
+    };
+  }
+  const countryIds = new Set(COUNTRIES.map((c) => c.id));
+  const deptIds = new Set(DEPARTMENTS.map((d) => d.id));
+  return {
+    extraPermissions: (body.extraPermissions ?? []).filter(isPermission),
+    deniedPermissions: (body.deniedPermissions ?? []).filter(isPermission),
+    allowedCountries: (body.allowedCountries ?? []).filter((id) => countryIds.has(id as typeof COUNTRIES[number]["id"])),
+    allowedDepartments: (body.allowedDepartments ?? []).filter((id) => deptIds.has(id as typeof DEPARTMENTS[number]["id"])),
+  };
+}
 
 export async function GET() {
-  const auth = await requirePerm("sop.view");
+  const auth = await requireUser();
   if (!auth.ok) return auth.response;
   const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
-  return jsonOk(users.map(sanitizeUser));
+  return jsonOk(
+    users.map((u) => {
+      const safe = sanitizeUser(u);
+      if (isSuperAdmin(auth.user) || safe.id === auth.user.id) return safe;
+      return { ...safe, extraPermissions: [], deniedPermissions: [], allowedCountries: [], allowedDepartments: [] };
+    }),
+  );
 }
 
 export async function POST(request: Request) {
@@ -19,6 +52,9 @@ export async function POST(request: Request) {
   const parsed = userBodySchema.safeParse(body);
   if (!parsed.success) return jsonError("يرجى ملء الحقول المطلوبة", 400);
   if (!parsed.data.password) return jsonError("يرجى إدخال كلمة المرور", 400);
+  if (parsed.data.role === "super_admin" && !isSuperAdmin(auth.user)) {
+    return jsonError("فقط Super Admin يمكنه تعيين هذا الدور", 403);
+  }
 
   try {
     const user = await prisma.user.create({
@@ -32,6 +68,7 @@ export async function POST(request: Request) {
         phone: parsed.data.phone || null,
         avatar: initials(parsed.data.name),
         active: parsed.data.active,
+        ...aclFields(auth.user, parsed.data),
       },
     });
     return jsonOk(sanitizeUser(user), 201);

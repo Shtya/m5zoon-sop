@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
+import { canAccessDepartment, viewDepartmentIds } from "@/lib/permissions";
 import { serializeTrainingPath, trainingPathInclude } from "@/lib/serialize";
 import { trainingPathBodySchema } from "@/lib/validation";
 
@@ -19,11 +20,20 @@ export async function GET(request: Request) {
   const department = searchParams.get("department") || "all";
   const mine = searchParams.get("mine") === "1";
 
+  const allowedDepts = viewDepartmentIds(auth.user);
   const where: Prisma.TrainingPathWhereInput = {
     AND: [
       { active: true },
       department !== "all" ? { department } : {},
       mine ? { enrollments: { some: { userId: auth.user.id } } } : {},
+      allowedDepts
+        ? {
+            OR: [
+              { department: { in: allowedDepts } },
+              { enrollments: { some: { userId: auth.user.id } } },
+            ],
+          }
+        : {},
     ],
   };
 
@@ -51,6 +61,9 @@ export async function POST(request: Request) {
     return jsonError(parsed.error.issues[0]?.message || "بيانات غير صالحة", 400);
   }
   const f = parsed.data;
+  if (!canAccessDepartment(auth.user, f.department, "write")) {
+    return jsonError("غير مصرح بإنشاء مسار لهذا القسم", 403);
+  }
   try {
     const path = await prisma.trainingPath.create({
       data: {

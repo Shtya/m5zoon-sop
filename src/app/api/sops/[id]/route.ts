@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm, requireUser } from "@/lib/auth";
-import { canEditSop } from "@/lib/permissions";
-import { bumpVersion, serializeSop, snapshotFromSop, sopInclude } from "@/lib/serialize";
+import { canAccessDepartment, canEditSop, canSeeCountries } from "@/lib/permissions";
+import { bumpVersion, sanitizeRecordCountries, serializeSop, snapshotFromSop, sopInclude } from "@/lib/serialize";
 import {
   cleanAttachments,
   cleanContacts,
@@ -21,8 +21,11 @@ export async function GET(_request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
 
   try {
-    const existing = await prisma.sop.findUnique({ where: { id } });
+    const existing = await prisma.sop.findUnique({ where: { id }, include: { countries: true } });
     if (!existing) return jsonError("الإجراء غير موجود", 404);
+    if (!canAccessDepartment(user, existing.department, "view") || !canSeeCountries(user, existing.countries.map((c) => c.countryId))) {
+      return jsonError("غير مصرح بعرض هذا الإجراء", 403);
+    }
 
     await prisma.$transaction([
       prisma.sop.update({ where: { id }, data: { views: { increment: 1 } } }),
@@ -50,13 +53,17 @@ export async function PUT(request: Request, ctx: Ctx) {
 
   const existing = await prisma.sop.findUnique({ where: { id }, include: { countries: true } });
   if (!existing) return jsonError("الإجراء غير موجود", 404);
-  if (!canEditSop(user.role, user.department, existing.department)) {
+  if (!canEditSop(user, existing.department)) {
     return jsonError("غير مصرح بتعديل هذا الإجراء", 403);
   }
 
   const f = parsed.data;
+  if (!canAccessDepartment(user, f.department, "write")) {
+    return jsonError("غير مصرح بنقل هذا الإجراء إلى القسم المحدد", 403);
+  }
   const steps = cleanSteps(f.steps);
   if (!steps.length) return jsonError("يرجى إضافة خطوة تنفيذ واحدة على الأقل", 400);
+  const countries = sanitizeRecordCountries(user, f.countries);
   const newVer = bumpVersion(existing.version);
   const previous = snapshotFromSop(existing);
   const current = snapshotFromSop({
@@ -64,7 +71,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     steps,
     videoLink: f.videoLink || "",
     reviewDate: f.reviewDate ? new Date(f.reviewDate) : null,
-    countries: f.countries.map((countryId) => ({ countryId })),
+    countries: countries.map((countryId) => ({ countryId })),
   });
 
   try {
@@ -88,7 +95,7 @@ export async function PUT(request: Request, ctx: Ctx) {
           reviewDate: f.reviewDate ? new Date(f.reviewDate) : null,
           version: newVer,
           updatedById: user.id,
-          countries: { create: f.countries.map((countryId) => ({ countryId })) },
+          countries: { create: countries.map((countryId) => ({ countryId })) },
           history: {
             create: {
               version: newVer,

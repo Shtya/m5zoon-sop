@@ -1,4 +1,6 @@
 import type { Prisma } from "@prisma/client";
+import type { PermissionHolder } from "./permissions";
+import { viewCountryIds, viewDepartmentIds } from "./permissions";
 import type { PublicIssue, PublicSop, SopContentSnapshot } from "./types";
 
 function asArray<T>(value: unknown): T[] {
@@ -161,6 +163,54 @@ export function issueCountryWhere(country?: string | null): Prisma.IssueWhereInp
   return {
     OR: [{ countries: { none: {} } }, { countries: { some: { countryId: country } } }],
   };
+}
+
+function noneId(): { id: { in: string[] } } {
+  return { id: { in: [] } };
+}
+
+export function scopedCountryWhere(user: PermissionHolder, country?: string | null): Prisma.SopWhereInput {
+  const allowed = viewCountryIds(user);
+  if (country && country !== "all") {
+    if (allowed && !allowed.includes(country)) return noneId();
+    return countryWhere(country);
+  }
+  if (!allowed) return {};
+  return {
+    OR: [{ countries: { none: {} } }, { countries: { some: { countryId: { in: allowed } } } }],
+  };
+}
+
+export function scopedIssueCountryWhere(user: PermissionHolder, country?: string | null): Prisma.IssueWhereInput {
+  const allowed = viewCountryIds(user);
+  if (country && country !== "all") {
+    if (allowed && !allowed.includes(country)) return noneId();
+    return issueCountryWhere(country);
+  }
+  if (!allowed) return {};
+  return {
+    OR: [{ countries: { none: {} } }, { countries: { some: { countryId: { in: allowed } } } }],
+  };
+}
+
+export function scopedDepartmentWhere(
+  user: PermissionHolder,
+  department?: string | null,
+): { department?: string | { in: string[] }; id?: { in: string[] } } {
+  const allowed = viewDepartmentIds(user);
+  if (department && department !== "all") {
+    if (allowed && !allowed.includes(department)) return noneId();
+    return { department };
+  }
+  if (!allowed) return {};
+  return { department: { in: allowed } };
+}
+
+export function sanitizeRecordCountries(user: PermissionHolder, countries: string[]) {
+  const allowed = viewCountryIds(user);
+  if (!allowed) return countries;
+  const next = countries.filter((id) => allowed.includes(id));
+  return next.length ? next : [...allowed];
 }
 
 export function bumpVersion(current: string) {

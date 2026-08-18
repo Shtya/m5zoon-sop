@@ -2,7 +2,8 @@ import { IssueSeverity, IssueStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
-import { issueCountryWhere, issueInclude, serializeIssue } from "@/lib/serialize";
+import { canAccessDepartment } from "@/lib/permissions";
+import { issueInclude, sanitizeRecordCountries, scopedDepartmentWhere, scopedIssueCountryWhere, serializeIssue } from "@/lib/serialize";
 import { cleanStrings, issueBodySchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -19,8 +20,8 @@ export async function GET(request: Request) {
 
   const where: Prisma.IssueWhereInput = {
     AND: [
-      issueCountryWhere(country),
-      department !== "all" ? { department } : {},
+      scopedIssueCountryWhere(auth.user, country),
+      scopedDepartmentWhere(auth.user, department),
       category !== "all" ? { category } : {},
       severity !== "all" ? { severity: severity as IssueSeverity } : {},
       status !== "all" ? { status: status as IssueStatus } : {},
@@ -59,6 +60,10 @@ export async function POST(request: Request) {
     return jsonError(parsed.error.issues[0]?.message || "بيانات غير صالحة", 400);
   }
   const f = parsed.data;
+  if (!canAccessDepartment(user, f.department, "write")) {
+    return jsonError("غير مصرح بتسجيل مشكلة لهذا القسم", 403);
+  }
+  const countries = sanitizeRecordCountries(user, f.countries);
   try {
     const issue = await prisma.issue.create({
       data: {
@@ -78,7 +83,7 @@ export async function POST(request: Request) {
         videoLink: f.videoLink || "",
         isRecurring: f.isRecurring || f.status === "recurring",
         recurrenceCount: f.isRecurring || f.status === "recurring" ? f.recurrenceCount : 1,
-        countries: { create: f.countries.map((countryId) => ({ countryId })) },
+        countries: { create: countries.map((countryId) => ({ countryId })) },
         affectedUsers: {
           create: [...new Set(f.affectedUsers.length ? f.affectedUsers : [user.id])].map((userId) => ({ userId })),
         },

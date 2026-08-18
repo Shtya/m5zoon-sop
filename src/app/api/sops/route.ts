@@ -2,7 +2,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
-import { countryWhere, serializeSop, snapshotFromSop, sopInclude } from "@/lib/serialize";
+import { canAccessDepartment } from "@/lib/permissions";
+import { sanitizeRecordCountries, scopedCountryWhere, scopedDepartmentWhere, serializeSop, snapshotFromSop, sopInclude } from "@/lib/serialize";
 import {
   cleanAttachments,
   cleanContacts,
@@ -27,8 +28,8 @@ export async function GET(request: Request) {
 
   const where: Prisma.SopWhereInput = {
     AND: [
-      countryWhere(country),
-      department !== "all" ? { department } : {},
+      scopedCountryWhere(user, country),
+      scopedDepartmentWhere(user, department),
       status ? { relatedStatuses: { has: status } } : {},
       action ? { relatedActions: { has: action } } : {},
     ],
@@ -77,8 +78,12 @@ export async function POST(request: Request) {
     return jsonError(parsed.error.issues[0]?.message || "بيانات غير صالحة", 400);
   }
   const f = parsed.data;
+  if (!canAccessDepartment(user, f.department, "write")) {
+    return jsonError("غير مصرح بإنشاء إجراء لهذا القسم", 403);
+  }
   const steps = cleanSteps(f.steps);
   if (!steps.length) return jsonError("يرجى إضافة خطوة تنفيذ واحدة على الأقل", 400);
+  const countries = sanitizeRecordCountries(user, f.countries);
 
   try {
     const sop = await prisma.sop.create({
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
         version: "1.0",
         createdById: user.id,
         updatedById: user.id,
-        countries: { create: f.countries.map((countryId) => ({ countryId })) },
+        countries: { create: countries.map((countryId) => ({ countryId })) },
         history: {
           create: {
             version: "1.0",
@@ -110,7 +115,7 @@ export async function POST(request: Request) {
               steps,
               videoLink: f.videoLink || "",
               reviewDate: f.reviewDate ? new Date(f.reviewDate) : null,
-              countries: f.countries.map((countryId) => ({ countryId })),
+              countries: countries.map((countryId) => ({ countryId })),
             }),
           },
         },

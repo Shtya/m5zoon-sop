@@ -30,35 +30,53 @@ enum IssueStatus {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  name           String
-  email          String   @unique
-  passwordHash   String   @map("password_hash")
-  role           Role     @default(employee)
-  department     String
-  position       String?
-  phone          String?
-  avatar         String?
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(cuid())
+  name                String
+  email               String   @unique
+  passwordHash        String   @map("password_hash")
+  role                Role     @default(employee)
+  department          String
+  position            String?
+  phone               String?
+  avatar              String?
+  active              Boolean  @default(true)
+  extraPermissions    String[] @default([]) @map("extra_permissions")
+  deniedPermissions   String[] @default([]) @map("denied_permissions")
+  allowedCountries    String[] @default([]) @map("allowed_countries")
+  allowedDepartments  String[] @default([]) @map("allowed_departments")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
-  createdSops    Sop[]    @relation("SopCreatedBy")
-  updatedSops    Sop[]    @relation("SopUpdatedBy")
-  sopHistory     SopHistory[]
-  sopAcks        SopAcknowledgment[]
-  sopFeedback    SopFeedback[]
-  sopComments    SopComment[]
-  sopViews       SopView[]
-  reportedIssues Issue[]  @relation("IssueReportedBy")
-  createdIssues  Issue[]  @relation("IssueCreatedBy")
-  updatedIssues  Issue[]  @relation("IssueUpdatedBy")
-  issueComments  IssueComment[]
-  affectedIssues IssueAffectedUser[]
-  createdPaths   TrainingPath[] @relation("PathCreatedBy")
-  pathEnrollments TrainingEnrollment[]
+  createdSops         Sop[]    @relation("SopCreatedBy")
+  updatedSops         Sop[]    @relation("SopUpdatedBy")
+  sopHistory          SopHistory[]
+  sopAcks             SopAcknowledgment[]
+  sopFeedback         SopFeedback[]
+  sopComments         SopComment[]
+  sopViews            SopView[]
+  reportedIssues      Issue[]  @relation("IssueReportedBy")
+  createdIssues       Issue[]  @relation("IssueCreatedBy")
+  updatedIssues       Issue[]  @relation("IssueUpdatedBy")
+  issueComments       IssueComment[]
+  affectedIssues      IssueAffectedUser[]
+  createdPaths        TrainingPath[] @relation("PathCreatedBy")
+  pathEnrollments     TrainingEnrollment[]
+  uploads             Upload[]
 
   @@map("users")
+}
+
+model Upload {
+  id          String   @id @default(cuid())
+  mimeType    String   @map("mime_type")
+  filename    String
+  data        Bytes
+  createdById String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@map("uploads")
 }
 
 model Country {

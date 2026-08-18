@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
+import { canAccessDepartment } from "@/lib/permissions";
 import { serializeTrainingPath, trainingPathInclude } from "@/lib/serialize";
 import { trainingPathBodySchema } from "@/lib/validation";
 
@@ -20,6 +21,10 @@ export async function GET(_request: Request, ctx: Ctx) {
   try {
     const path = await prisma.trainingPath.findUnique({ where: { id }, include: trainingPathInclude });
     if (!path) return jsonError("المسار غير موجود", 404);
+    const enrolled = path.enrollments.some((e) => e.userId === auth.user.id);
+    if (!enrolled && !canAccessDepartment(auth.user, path.department, "view")) {
+      return jsonError("غير مصرح بعرض هذا المسار", 403);
+    }
     const titles = await sopTitles(path.steps.map((s) => s.sopId));
     return jsonOk(serializeTrainingPath(path, { currentUserId: auth.user.id, sopTitles: titles }));
   } catch {
@@ -37,6 +42,9 @@ export async function PUT(request: Request, ctx: Ctx) {
     return jsonError(parsed.error.issues[0]?.message || "بيانات غير صالحة", 400);
   }
   const f = parsed.data;
+  if (!canAccessDepartment(auth.user, f.department, "write")) {
+    return jsonError("غير مصرح بتعديل مسار لهذا القسم", 403);
+  }
   try {
     const exists = await prisma.trainingPath.findUnique({ where: { id } });
     if (!exists) return jsonError("المسار غير موجود", 404);

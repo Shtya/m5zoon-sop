@@ -36,7 +36,7 @@ Open http://localhost:3000
 
 | Email | Password | Role |
 | --- | --- | --- |
-| omar@makhzon.com | admin123 | Super Admin |
+| noor@gmail.com | admin123 | Super Admin |
 | sara@makhzon.com | sara123 | Admin |
 | khaled@makhzon.com | khaled123 | Team Leader |
 | nada@makhzon.com | nada123 | Employee |

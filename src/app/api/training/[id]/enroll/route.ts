@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { can, canAccessDepartment } from "@/lib/permissions";
 import { serializeTrainingPath, trainingPathInclude } from "@/lib/serialize";
 import { trainingEnrollSchema } from "@/lib/validation";
 
@@ -16,13 +16,16 @@ export async function POST(request: Request, ctx: Ctx) {
   if (!parsed.success) return jsonError("بيانات غير صالحة", 400);
 
   const targetUserId = parsed.data.userId || auth.user.id;
-  if (targetUserId !== auth.user.id && !can(auth.user.role, "training.manage")) {
+  if (targetUserId !== auth.user.id && !can(auth.user, "training.manage")) {
     return jsonError("غير مصرح بتسجيل موظف آخر في المسار", 403);
   }
 
   try {
     const path = await prisma.trainingPath.findUnique({ where: { id } });
     if (!path || !path.active) return jsonError("المسار غير موجود", 404);
+    if (!canAccessDepartment(auth.user, path.department, "view")) {
+      return jsonError("غير مصرح بالتسجيل في مسار هذا القسم", 403);
+    }
 
     await prisma.trainingEnrollment.upsert({
       where: { pathId_userId: { pathId: id, userId: targetUserId } },

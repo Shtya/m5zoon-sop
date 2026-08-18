@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, readJson } from "@/lib/http";
 import { requirePerm } from "@/lib/auth";
-import { issueInclude, serializeIssue } from "@/lib/serialize";
+import { canAccessDepartment, canSeeCountries } from "@/lib/permissions";
+import { issueInclude, sanitizeRecordCountries, serializeIssue } from "@/lib/serialize";
 import { cleanStrings, issueBodySchema } from "@/lib/validation";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -12,6 +13,9 @@ export async function GET(_request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const issue = await prisma.issue.findUnique({ where: { id }, include: issueInclude });
   if (!issue) return jsonError("المشكلة غير موجودة", 404);
+  if (!canAccessDepartment(auth.user, issue.department, "view") || !canSeeCountries(auth.user, issue.countries.map((c) => c.countryId))) {
+    return jsonError("غير مصرح بعرض هذه المشكلة", 403);
+  }
   return jsonOk(serializeIssue(issue));
 }
 
@@ -26,6 +30,10 @@ export async function PUT(request: Request, ctx: Ctx) {
     return jsonError(parsed.error.issues[0]?.message || "بيانات غير صالحة", 400);
   }
   const f = parsed.data;
+  if (!canAccessDepartment(user, f.department, "write")) {
+    return jsonError("غير مصرح بتعديل مشكلة لهذا القسم", 403);
+  }
+  const countries = sanitizeRecordCountries(user, f.countries);
   try {
     const issue = await prisma.$transaction(async (tx) => {
       await tx.issueCountry.deleteMany({ where: { issueId: id } });
@@ -47,7 +55,7 @@ export async function PUT(request: Request, ctx: Ctx) {
           videoLink: f.videoLink || "",
           isRecurring: f.isRecurring || f.status === "recurring",
           recurrenceCount: f.isRecurring || f.status === "recurring" ? f.recurrenceCount : 1,
-          countries: { create: f.countries.map((countryId) => ({ countryId })) },
+          countries: { create: countries.map((countryId) => ({ countryId })) },
           affectedUsers: {
             create: [...new Set(f.affectedUsers)].map((userId) => ({ userId })),
           },
