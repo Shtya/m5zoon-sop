@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Check,
+  CircleAlert,
   CirclePause,
   CirclePlay,
   Globe,
@@ -105,13 +106,15 @@ export function UsersPage({
   onCreate,
   onUpdate,
   onDelete,
+  onError,
   busy,
 }: {
   users: SessionUser[];
   currentUser: SessionUser;
-  onCreate: (form: Record<string, unknown>) => void;
-  onUpdate: (id: string, form: Record<string, unknown>) => void;
+  onCreate: (form: Record<string, unknown>) => Promise<void>;
+  onUpdate: (id: string, form: Record<string, unknown>) => Promise<void>;
   onDelete: (id: string) => void;
+  onError?: (message: string) => void;
   busy?: boolean;
 }) {
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -123,7 +126,9 @@ export function UsersPage({
   const [statusFilter, setStatusFilter] = useState("all");
   const [form, setForm] = useState<UserForm>(emptyForm);
   const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
   const aclAdmin = isSuperAdmin(currentUser);
+  const modalBusy = busy || saving;
 
   const stats = useMemo(() => {
     const active = users.filter((u) => u.active).length;
@@ -174,7 +179,8 @@ export function UsersPage({
     setModal("edit");
   }
 
-  function save() {
+  async function save() {
+    if (saving) return;
     if (!form.name.trim()) {
       setFormError("يرجى كتابة الاسم");
       setTab("profile");
@@ -185,15 +191,39 @@ export function UsersPage({
       setTab("profile");
       return;
     }
-    if (modal === "create" && !form.password) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setFormError("البريد الإلكتروني غير صالح");
+      setTab("profile");
+      return;
+    }
+    if (modal === "create" && !form.password.trim()) {
       setFormError("يرجى إدخال كلمة المرور");
       setTab("profile");
       return;
     }
+    if (form.password.trim() && form.password.trim().length < 4) {
+      setFormError("كلمة المرور يجب أن تكون 4 أحرف على الأقل");
+      setTab("profile");
+      return;
+    }
+    if (!form.department) {
+      setFormError("يرجى اختيار القسم");
+      setTab("profile");
+      return;
+    }
+
     setFormError("");
-    if (modal === "create") onCreate(payloadFromForm(form));
-    else if (et) onUpdate(et.id, payloadFromForm(form));
-    setModal(null);
+    setSaving(true);
+    try {
+      if (modal === "create") await onCreate(payloadFromForm(form));
+      else if (et) await onUpdate(et.id, payloadFromForm(form));
+      setModal(null);
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "فشل حفظ المستخدم. يرجى المحاولة مرة أخرى.");
+      setTab("profile");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function setGroup(keys: Permission[], enabled: boolean) {
@@ -390,7 +420,11 @@ export function UsersPage({
                       <button
                         type="button"
                         title={u.active ? "إيقاف" : "تفعيل"}
-                        onClick={() => onUpdate(u.id, payloadFromForm({ ...fromUser(u), active: !u.active }))}
+                        onClick={() => {
+                          void onUpdate(u.id, payloadFromForm({ ...fromUser(u), active: !u.active })).catch((e) => {
+                            onError?.(e instanceof Error ? e.message : "فشل تحديث المستخدم");
+                          });
+                        }}
                         className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-md)] border px-3 text-xs font-semibold"
                         style={{
                           color: u.active ? "var(--warning)" : "var(--success)",
@@ -624,14 +658,21 @@ export function UsersPage({
             </div>
           )}
 
-          {formError && <p className="mt-3 text-xs font-medium text-danger">{formError}</p>}
+          {formError && (
+            <div className="mt-4 rounded-[var(--radius-md)] border border-danger/25 bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
+              <span className="inline-flex items-start gap-1.5">
+                <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{formError}</span>
+              </span>
+            </div>
+          )}
 
           <div className="mt-5 flex justify-end gap-2.5 border-t border-border pt-4">
-            <button type="button" onClick={() => setModal(null)} className="btn-outline">
+            <button type="button" disabled={modalBusy} onClick={() => setModal(null)} className="btn-outline">
               إلغاء
             </button>
-            <button type="button" disabled={busy} onClick={save} className="btn-primary">
-              <IconText icon={Save}>{busy ? "جاري الحفظ..." : "حفظ"}</IconText>
+            <button type="button" disabled={modalBusy} onClick={() => void save()} className="btn-primary">
+              <IconText icon={Save}>{modalBusy ? "جاري الحفظ..." : "حفظ"}</IconText>
             </button>
           </div>
         </Wrap>

@@ -952,19 +952,16 @@ export function AppShell() {
               currentUser={user}
               busy={busy}
               onCreate={async (form) => {
-                try {
-                  await api("/api/users", { method: "POST", body: JSON.stringify(form) });
-                  await loadUsers();
-                  notify("ok", "تم إنشاء المستخدم");
-                } catch (e) { fail(e); }
+                await api("/api/users", { method: "POST", body: JSON.stringify(form) });
+                await loadUsers();
+                notify("ok", "تم إنشاء المستخدم");
               }}
               onUpdate={async (id, form) => {
-                try {
-                  await api(`/api/users/${id}`, { method: "PUT", body: JSON.stringify(form) });
-                  await loadUsers();
-                  notify("ok", "تم تحديث المستخدم");
-                } catch (e) { fail(e); }
+                await api(`/api/users/${id}`, { method: "PUT", body: JSON.stringify(form) });
+                await loadUsers();
+                notify("ok", "تم تحديث المستخدم");
               }}
+              onError={(message) => notify("error", message)}
               onDelete={async (id) => {
                 try {
                   await api(`/api/users/${id}`, { method: "DELETE" });

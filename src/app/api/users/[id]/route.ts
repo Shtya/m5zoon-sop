@@ -49,7 +49,16 @@ export async function PUT(request: Request, ctx: Ctx) {
 
   const body = await readJson<unknown>(request);
   const parsed = userBodySchema.safeParse(body);
-  if (!parsed.success) return jsonError("بيانات غير صالحة", 400);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.[0];
+    if (path === "email") return jsonError("البريد الإلكتروني غير صالح", 400);
+    if (path === "password") return jsonError("كلمة المرور يجب أن تكون 4 أحرف على الأقل", 400);
+    if (path === "name") return jsonError("يرجى كتابة الاسم", 400);
+    if (path === "department") return jsonError("يرجى اختيار القسم", 400);
+    if (path === "role") return jsonError("الدور غير صالح", 400);
+    return jsonError(issue?.message || "بيانات غير صالحة", 400);
+  }
 
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) return jsonError("المستخدم غير موجود", 404);

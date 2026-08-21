@@ -50,7 +50,16 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response;
   const body = await readJson<unknown>(request);
   const parsed = userBodySchema.safeParse(body);
-  if (!parsed.success) return jsonError("يرجى ملء الحقول المطلوبة", 400);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.[0];
+    if (path === "email") return jsonError("البريد الإلكتروني غير صالح", 400);
+    if (path === "password") return jsonError("كلمة المرور يجب أن تكون 4 أحرف على الأقل", 400);
+    if (path === "name") return jsonError("يرجى كتابة الاسم", 400);
+    if (path === "department") return jsonError("يرجى اختيار القسم", 400);
+    if (path === "role") return jsonError("الدور غير صالح", 400);
+    return jsonError(issue?.message || "يرجى ملء الحقول المطلوبة", 400);
+  }
   if (!parsed.data.password) return jsonError("يرجى إدخال كلمة المرور", 400);
   if (parsed.data.role === "super_admin" && !isSuperAdmin(auth.user)) {
     return jsonError("فقط Super Admin يمكنه تعيين هذا الدور", 403);
